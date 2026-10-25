@@ -29,8 +29,24 @@ BEGIN
     from nalog
     where year(datPrimitkaNalog) = kvartal and sifKvar = sifraKvara;
     return concat("Broj odrađenih naloga: ", odradeno, " Kvartal: ", sifraKvara);
-end
+end //
+
+-- select * from nalog// '> 5'
+
+drop function if exists radnikBonus //
+create function radnikBonus(sifra int) returns INT
+DETERMINISTIC
+BEGIN
+    declare placaBonus int default null;
+    select (r.KoefPlaca * r.IznosOsnovice * 1.15) into placaBonus
+    from radnik r
+    where r.sifRadnik = sifra;
+    return concat_ws('Bonus: ', placaBonus);
+end //
+
 delimiter ;
+
+select radnikBonus(281);
 -- select ispisNaloga(2);
 -- select brojPoGodini(2019, 5);
 -- select odradeniKvarovi(1,1);

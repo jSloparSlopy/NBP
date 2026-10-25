@@ -101,7 +101,7 @@ da im je prosjek tih ocjena veći od 1. Prikazati sljedeće podatke:
 • naziv smjera,
 • jmbag studenta,
 • broj ispita,
-• prosječnu ocjenu prema zadanom kriteriju.             */
+• prosječnu ocjenu prema zadanom kriteriju.             
 
 
 use radionica;
@@ -140,7 +140,7 @@ Odabrati studente s više od jednog položenog ispita i prosjekom položenih isp
 2 i 4.
 Potrebno je putem ulazno izlaznog parametra vratiti prosjek svih ocjena svih studenata
 koji prebivaju u zadanom mjestu.
-Ispis sortirati po prezimenu pa imenu.                                              */
+Ispis sortirati po prezimenu pa imenu.                                              
 
 use radionica;
 delimiter //
@@ -179,7 +179,7 @@ Prikazati sljedeće podatke:
 
 Ispis sortirati po šifri kolegija obrnutim redoslijedom.
 Napisati smisleni primjer poziva ovog pohranjenog zadatka.
- */
+
 
 delimiter //
 use radionica //
@@ -197,10 +197,109 @@ BEGIN
 end //
 
 delimiter ;
+*/
 
-call kolegijPodaci(1);
+
+delimiter // 
+use studenti //
+drop procedure if exists vratiRadionicu //
+create procedure vratiRadionicu(ozn varchar(5), out tot_sati int)
+begin
+    select r.oznRadionica, k.sifKvar,k.nazivKvar, k.brojRadnika, k.satiKvar
+    from radionica r
+    inner join rezervacija rez on rez.oznRadionica = r.oznRadionica
+    inner join kvar k on k.sifKvar = rez.sifKvar
+    where r.oznRadionica = ozn;
+    select sum(satiKvar) into tot_sati
+    from kvar;
+end //
 
 
+drop procedure if exists vratiOdjel //
+create procedure vratiOdjel(sifraOdjela int, mjesec int)
+BEGIN
+    with cte_nalog as (
+        select sifRadnik, count(*) as brNaloga, AVG(OstvareniSatiRada) as prosSatiRada
+        from nalog 
+        where MONTH(datPrimitkaNalog) <> mjesec
+        group by sifRadnik
+
+    )
+    select r.sifRadnik, CONCAT_WS(' ', r.imeRadnik, r.prezimeRadnik) as imePrezime, cn.brNaloga, cn.prosSatiRada,
+           r.KoefPlaca, r.IznosOsnovice, ROUND((r.KoefPlaca * r.IznosOsnovice), 2) as Placa
+    from radnik r
+    join cte_nalog cn on cn.sifRadnik = r.sifRadnik
+    where r.sifOdjel = sifraOdjela;
+end //
+
+use radionica //
+drop procedure if exists rasponProsOcjena //
+create procedure rasponProsOcjena(prosjecna_ocjena_od int, prosjecna_ocjena_do int)
+begin
+    with cte_ispit as (
+        select idKolegij, count(*) as brPolozenih, avg(ocjena) as prosOcjena
+        from ocjene
+        group by idKolegij
+        having avg(ocjena) BETWEEN prosjecna_ocjena_od and prosjecna_ocjena_do
+    )
+    select k.id, k.naziv, k.idSmjer,ci.*
+    from kolegiji k
+    join cte_ispit ci on ci.idKolegij = k.id
+    order by ci.prosOcjena;
+end //
+
+use studenti //
+drop procedure if exists zadnjiKlijent //
+create procedure zadnjiKlijent()
+begin
+    
+    select jmbgKlijent 
+    from klijent
+    where datUnosKlijent = (select MAX(datUnosKlijent) maks from klijent);
+end //
+
+use studenti //
+drop procedure if exists klijent //
+create procedure klijent(sifra int, out jmbgK int, out brNaloga int, out brSati int)
+BEGIN
+    SELECT k.jmbgKlijent, COUNT(*), SUM(n.OstvareniSatiRada)
+    INTO jmbgK, brNaloga, brSati
+    FROM nalog n JOIN klijent k ON n.sifKlijent = k.sifKlijent
+    WHERE n.sifKlijent = sifra
+    GROUP BY n.sifKlijent, k.jmbgKlijent;
+end //
+
+use studenti //
+drop procedure if exists vratiKlijent //
+create procedure vratiKlijent(sifra int, out suma int)
+BEGIN
+    with cte_nalozi as (
+        select n.sifKlijent, count(*) as brNaloga, sum(n.OstvareniSatiRada) as sumSati
+        from nalog n
+        group by n.sifKlijent
+    )
+    SELECT k.jmbgKlijent, concat(' ', k.imeKlijent, k.prezimeKlijent) as ImePrezime, YEAR(k.datUnosKlijent) as God, cn.brNaloga, cn.sumSati
+    from klijent k
+    join cte_nalozi cn on cn.sifKlijent = k.sifKlijent
+    where k.sifKlijent = sifra;
+
+    select sum(OstvareniSatiRada) INTO suma
+    from nalog;
+    -- where sifKlijent = sifra;
+end //
+
+delimiter ;
+
+call vratiKlijent(1167, @total);
+select @total;
+
+-- call klijent(130, @j, @br, @brs); select @j, @br, @brs;
+
+-- all zadnjiKlijent();
+-- call rasponProsOcjena(2.2, 3.3);
+-- call vratiOdjel(2,7);
+-- call vratiRadionicu('R10', @tot_sati);
+-- select @tot_sati;
 
 
 
