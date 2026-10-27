@@ -83,8 +83,36 @@ BEGIN
 
 END // */
 
+use studenti //
+drop FUNCTION IF EXISTS nadiKvartal //
+create FUNCTION nadiKvartal(kvartal int, sifra int) RETURNS VARCHAR(100)
+DETERMINISTIC
+BEGIN
+    declare brNaloga int DEFAULT null;
+    select count(*) into brNaloga
+    from kvar kv
+    inner join nalog n on n.sifKvar = kv.sifKvar
+    where QUARTER(n.datPrimitkaNalog) = kvartal and kv.sifKvar = sifra;
+    return CONCAT('Broj odrađenih naloga: ', brNaloga, ' Kvartal: ', kvartal);
+END; //
+
+
+use radionica //
+drop FUNCTION IF EXISTS brStudenti //
+create FUNCTION brStudenti(god int, smjer int) returns VARCHAR(50)
+DETERMINISTIC
+BEGIN
+    DECLARE br int DEFAULT null;
+    select count(*) into br
+    from studenti s
+    where YEAR(s.datumUpisa) = god and s.idSmjer = smjer;
+    return CONCAT("Broj upisanih studenata: ", br, " Godina: ", god);
+end; //
+
 delimiter ;
 
+select brStudenti(2019,5);
+-- select nadiKvartal(1,1);
 -- select zadaniRadnik(277);
 
 -- select radnikBonus(281);
