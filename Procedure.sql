@@ -288,10 +288,124 @@ BEGIN
     -- where sifKlijent = sifra;
 end //
 
+use studenti //
+drop procedure if exists vratiRadionicu //
+create procedure vratiRadionicu(ozn varchar(10), out ukupan int)
+BEGIN
+    select rez.oznRadionica, rez.sifKvar, k.nazivKvar, k.brojRadnika, k.satiKvar
+    from rezervacija rez
+    inner join kvar k on k.sifKvar = rez.sifKvar
+    where rez.oznRadionica = ozn;
+    select sum(kapacitetRadnika)into ukupan from radionica where oznRadionica = ozn;
+END //
+
+use radionica //
+drop PROCEDURE IF EXISTS rasponOcjena //
+create PROCEDURE rasponOcjena(prosjecna_ocjena_od int, prosjecna_ocjena_do int)
+BEGIN
+    with cte_ispiti as (
+        select idKolegij, count(*) as brojPolozenih, AVG(ocjena) as prosOcjena
+        from ocjene
+        group by idKolegij
+        having round(AVG(ocjena), 2) BETWEEN prosjecna_ocjena_od and prosjecna_ocjena_do
+        
+    )
+    select k.id, k.naziv as nazivKolegija, k.idSmjer, ci.*
+    from kolegiji k
+    inner join cte_ispiti ci on ci.idKolegij = k.id
+    order by ci.prosOcjena;
+
+END //
+
+use radionica //
+drop PROCEDURE IF EXISTS stud //
+create PROCEDURE stud(smjer int)
+BEGIN
+    with cte_ocjena as (
+        select o.jmbagStudent, count(*) as brojIspita, avg(o.ocjena) as ProsOcjena, s.idSmjer
+        from ocjene o
+        join studenti s on s.jmbag = o.jmbagStudent
+        where o.ocjena BETWEEN 1 and 2
+        GROUP by o.jmbagStudent
+        having avg(o.ocjena) > 1
+    )
+    select sm.id, sm.naziv, co.*
+    from smjerovi sm
+    join cte_ocjena co on co.idSmjer = sm.id
+    where sm.id = smjer;
+END; //
+
+drop PROCEDURE IF EXISTS kvartal //
+create PROCEDURE kvartal(k int)
+BEGIN
+
+    with cte_kolegij as (
+        select o.idKolegij, MAX(o.ocjena) as maks_ocjena, MIN(o.ocjena) as min_ocjena, count(*) as brIspita
+        from ocjene o
+        where QUARTER(o.datumPolaganja) = k and o.ocjena > 1
+        group by o.idKolegij
+        having count(*) >1
+    )
+    SELECT CONCAT(k.naziv, '(', k.id, ')') as  'naziv(id)', k.opis, ck.*
+    FROM kolegiji k
+    join cte_kolegij ck on ck.idKolegij = k.id
+    order by k.id desc;
+END ; //
+
+
+drop PROCEDURE IF EXISTS postanski //
+CREATE PROCEDURE postanski(inout broj double)
+BEGIN
+    with cte_prosjek as (
+        select o.jmbagStudent, count(*) as brojIspita, avg(o.ocjena) as prosjekOcjena
+        from ocjene o
+        where o.ocjena >1
+        group by o.jmbagStudent
+        having count(*) > 1 and avg(o.ocjena) BETWEEN 2.00 and 4.00   
+    )
+    select s.jmbag, s.ime, s.prezime,s.postBrPrebivanje, s.postBrStanovanja, cp.*
+    from studenti s
+    join cte_prosjek cp on cp.jmbagStudent = s.jmbag
+    WHERE s.postBrPrebivanje = broj
+    order by 2,3;
+
+    select round(avg(ocjena),2) into broj
+    from studenti join ocjene on jmbag = jmbagStudent
+    WHERE postBrPrebivanje = broj; 
+END; //
+
+use studenti //
+drop PROCEDURE IF EXISTS post //
+create procedure post(postBroj int, out izlaz varchar(100))
+BEGIN
+    with cte_nalog as (
+        select n.sifKlijent, count(*) as brNaloga, sum(n.OstvareniSatiRada) as ostvareniSati
+        from nalog n
+        group by n.sifKlijent
+        having count(*) > 1
+    )
+    select CONCAT_WS(" ", k.imeKlijent, k.prezimeKlijent) as ImePrezime, YEAR(k.datUnosKlijent) as God, cn.*
+    from klijent k
+    JOIN cte_nalog cn on cn.sifKlijent = k.sifKlijent
+    where k.pbrKlijent = postBroj
+    order by cn.ostvareniSati desc;
+
+    select CONCAT(z.sifZupanija, ' ', z.nazivZupanija) into izlaz
+    from zupanija z
+    join mjesto m on z.sifZupanija = m.sifZupanija
+    where m.pbrMjesto = postBroj;
+end; //
+
 delimiter ;
 
-call vratiKlijent(1167, @total);
-select @total;
+call post(10000, @zupanija);
+select @zupanija;
+-- call kvartal(1);
+-- call stud(1);
+-- call rasponOcjena(2.2, 3.3);
+
+-- call vratiKlijent(1167, @total);
+-- select @total;
 
 -- call klijent(130, @j, @br, @brs); select @j, @br, @brs;
 
