@@ -132,8 +132,122 @@ BEGIN
 end;
 %
 
-delimiter ;
+-- 4.8
+use radionica %
+drop procedure if exists OIBustanove %
+create procedure OIBustanove(in oib_ varchar(11))
+BEGIN
+    if oib_ not in(select oib from ustanove)
+    THEN
+        select "Nepostojeći OIB ustanove." as Poruka;
+    else
+        with cte_ocjene as (
+            select s.idSmjer, count(*) as BrojOcjena, 
+                    count(case when ocjena = 1 then 1 else null end) as "1",
+                    count(case when ocjena = 2 then 1 else null end) as "2",
+                    count(case when ocjena = 3 then 1 else null end) as "3",
+                    count(case when ocjena = 4 then 1 else null end) as "4", 
+                    count(case when ocjena = 5 then 1 else null end) as "5"
+        
+            from ocjene o
+            inner join studenti s on s.jmbag = o.jmbagStudent
+            group by s.idSmjer
+        )
+        select sj.naziv, co.*, avg(o.ocjena) as prosjekSmjera, stddev(o.ocjena) as dev
+        from smjerovi sj
+        inner join cte_ocjene co on co.idSmjer = sj.id
+        inner join kolegiji k on k.idSmjer = sj.id
+        inner join ocjene o on o.idKolegij = k.id
+        where sj.oibUstanova = oib_
+        group by sj.id
+        order by prosjekSmjera desc, dev desc;
+    end if;
+end;
+%
 
+-- 4.10
+use studenti %
+drop function if exists klijentNalog %
+create function klijentNalog(idKlijent int) returns varchar(500)
+DETERMINISTIC
+BEGIN
+    declare ip varchar(50);
+    declare br, i int;
+    declare izlaz varchar(500);
+    set i = 1;
+    set izlaz = "";
+    if idKlijent not in (select sifKlijent from klijent)
+    then 
+        return "Ne postoji.";
+    end if;
+
+        select count(*), concat(k.imeKlijent, ' ', k.prezimeKlijent) into br, ip
+        from nalog n
+        inner join klijent k on k.sifKlijent = n.sifKlijent
+        where k.sifKlijent = idKlijent
+        group by 2;
+
+        while i <= br do
+            if i < br then
+                set izlaz = concat(izlaz, ip, ' - ');
+            else 
+                set izlaz = concat(izlaz, ip);
+            end if;
+
+            set i = i + 1;
+        end while;
+        return izlaz;
+end;
+%
+
+-- 4.11
+drop function if exists alarmi %
+create function alarmi(sifra int) returns varchar(500)
+deterministic 
+begin
+    declare ip varchar(30);
+    declare br, i int;
+    declare izlaz varchar(300);
+    set izlaz = '';
+    set i = 1;
+
+    if sifra not in (select sifRadnik from nalog) then
+        return "Nema radnika.";
+    end if;
+
+    select count(*) into br from nalog 
+    where sifRadnik = sifra;
+
+    select concat_WS(" ", imeRadnik, prezimeRadnik) into ip
+    from radnik
+    where sifRadnik = sifra; 
+
+    while i <= br do
+        if i < br THEN
+            set izlaz = CONCAT_WS(' - ', ip, izlaz);
+        else set izlaz = CONCAT_WS('', izlaz, ip);
+        end if;
+        set i = i +1;
+    end while;
+    return izlaz;
+end ;
+%
+delimiter ; 
+
+-- select alarmi(122);
+select alarmi(sifRadnik)
+from odjel o
+join radnik r on r.sifOdjel = o.sifOdjel
+where o.nazivOdjel = "Klima";
+
+-- select klijentNalog(1127);
+/*
+select distinct klijentNalog(sifKlijent)
+from klijent
+where left(prezimeKlijent, 1) like "M";
+*/
+
+-- call OIBustanove('08814003451');
 
 -- call smjer(1, @prosjek);
 -- select @prosjek;
