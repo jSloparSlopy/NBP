@@ -115,4 +115,55 @@ delimiter ;
 
 select brojiOcjene(10);
 
+/************************************************/
+            -- LABOS_ODJEL: -- 
+/*
+ALTER TABLE odjel 
+ADD COLUMN brRadnika INT, 
+ADD COLUMN brNaloga INT; */ 
 
+use studenti;
+
+delimiter $
+drop function if exists azurirajOdjel $
+create function azurirajOdjel(zadana_sifOdjel INT) returns varchar(255) deterministic
+begin 
+    declare redaka, azurirano, c_brRadnika, c_brNaloga, c_sif int default 0;
+    declare flag bool default false;
+
+    declare kursor cursor for 
+        select sifOdjel, count(distinct sifRadnik) as brRadnika, count(prioritetNalog) as brNaloga
+        from radnik
+        left join nalog using (sifRadnik)
+        group by sifOdjel;
+
+    declare continue handler for not found set flag = TRUE;
+
+    open kursor;
+    set redaka = FOUND_ROWS();
+
+    petlja:loop
+        fetch kursor into c_sif, c_brRadnika, c_brNaloga;
+        if flag = TRUE then 
+            leave petlja;
+
+        end if;
+
+        update odjel 
+        set brRadnika = c_brRadnika,
+            brNaloga = c_brNaloga
+        where sifOdjel = c_sif;
+
+        set azurirano = azurirano + 1;
+    end loop;
+
+    close kursor;
+    return CONCAT("Dohvaćeno: ", redaka, " Ažrurirano: ", azurirano);
+   
+end ; $
+
+delimiter ;
+
+
+select azurirajOdjel(9);
+ select * from odjel;
