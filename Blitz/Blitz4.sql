@@ -56,3 +56,63 @@ end ; $
 delimiter ;
 
 -- call tipOdjel(1);
+
+/************************************************/
+            -- LABOS_STUDENTI: -- 
+/*
+ALTER TABLE studenti 
+ADD COLUMN brPozitivnih INT, 
+ADD COLUMN brNegativnih INT, 
+ADD COLUMN prosjecnaOcjena DECIMAL(4,2);*/
+
+use radionica;
+
+delimiter $
+drop function if exists brojiOcjene $
+create function brojiOcjene(zadani_idSmjera INT) returns varchar(255) deterministic
+begin 
+    declare redaka, azurirano, c_neg, c_poz int default 0;
+    declare flag bool default false;
+    declare c_jmbag char(10) default null;
+    declare c_prosjek decimal(3,2) default null;
+
+    declare kursor cursor for 
+        select jmbagStudent, 
+               count(case when ocjena = 1 then 1 else null end) as brNegativnih,
+               count(case when ocjena > 1 then 1 else null end) as brPozitivnih,
+               avg(ocjena) as prosjek
+        from ocjene  
+        inner join studenti on jmbag = jmbagStudent
+        where idSmjer = zadani_idSmjera
+        group by jmbagStudent;
+
+    declare continue handler for not found set flag = TRUE;
+
+
+    open kursor;
+    set redaka = FOUND_ROWS();
+    petlja:loop
+        fetch kursor into c_jmbag, c_neg, c_poz, c_prosjek;
+
+        if flag = TRUE then 
+            leave petlja;
+        end if; 
+
+        update studenti
+        set brPozitivnih = c_poz,
+            brNegativnih = c_neg,
+            prosjecnaOcjena = c_prosjek
+        where jmbag = c_jmbag;
+
+        set azurirano = azurirano + 1;
+    end loop;
+    close kursor;
+
+    return CONCAT("Dohvaćeno: ", redaka, " Ažrurirano: ", azurirano);
+end ; $
+
+delimiter ;
+
+select brojiOcjene(10);
+
+
