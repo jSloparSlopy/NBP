@@ -31,9 +31,9 @@ begin
     
     drop temporary table if exists tmp;
     create temporary table tmp(sif int, naziv varchar(50), brNaloga int,prosjek decimal(4,2), tipOdjela varchar(50));
-    set redaka = FOUND_ROWS();
     set i = 0;
     open kursor;
+    set redaka = FOUND_ROWS();
 
     while i <= redaka do 
         fetch kursor into c_sif, c_naziv, c_brNaloga, c_prosjek;
