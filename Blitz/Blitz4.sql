@@ -233,6 +233,73 @@ delimiter ;
 
 call proc('Zamjena blatobrana', @por);
 select @por;
+/************************************************/
+            -- LABOS_STUDENTI_PROCEDURA: -- 
+/*
+Dodati u tablicu studenti tri nova stupca: brNeg, brPoz i avgOcj.
+Napisati proceduru (koristeći KURSOR) koja će za zadani idSmjera
+za svakog studenta tog smjera upisati u nove stupce:
+• brNeg - broj negativnih ocjena (ocjena = 1),
+• brPoz - broj pozitivnih ocjena (ocjena > 1),
+• avgOcj - prosječnu ocjenu.
+Zadatak riješiti bez korištenja handlera, pomoću WHILE petlje.
+Procedura ima izlazni parametar poruka u kojem se vraća broj dohvaćenih
+i broj ažuriranih studenata. Napisati primjer poziva procedure.
+*/
+
+/*
+ALTER TABLE studenti 
+ADD COLUMN brNeg INT, 
+ADD COLUMN brPoz INT, 
+ADD COLUMN avgOcj DECIMAL(4,2);*/
+
+use radionica;
+
+delimiter $
+drop procedure if exists azurirajStudente $
+create procedure azurirajStudente(in zadani_idSmjera int, out poruka varchar(100))
+begin
+    declare v_dohvat, v_azurirano, i int default 0;
+    declare c_jmbag char(10) default null;
+    declare c_neg, c_poz int default 0;
+    declare c_avg decimal(4,2) default null;
+
+    declare kursor cursor for
+        select s.jmbag,
+               count(case when o.ocjena = 1 then 1 end) as brNeg,
+               count(case when o.ocjena > 1 then 1 end) as brPoz,
+               avg(o.ocjena) as avgOcj
+        from studenti s
+        left join ocjene o on o.jmbagStudent = s.jmbag
+        where s.idSmjer = zadani_idSmjera
+        group by s.jmbag;
+
+    open kursor;
+    select found_rows() into v_dohvat;
+
+    while i < v_dohvat do
+        fetch kursor into c_jmbag, c_neg, c_poz, c_avg;
+
+        update studenti
+        set brNeg = c_neg,
+            brPoz = c_poz,
+            avgOcj = c_avg
+        where jmbag = c_jmbag;
+
+        set v_azurirano = v_azurirano + 1;
+        set i = i + 1;
+    end while;
+
+    close kursor;
+
+    set poruka = concat('Dohvaceno: ', v_dohvat, ', Azurirano: ', v_azurirano);
+end ; $
+
+delimiter ;
+
+call azurirajStudente(10, @por);
+select @por;
+select * from studenti where idSmjer = 10;
 
 
 select azurirajOdjel(9);
