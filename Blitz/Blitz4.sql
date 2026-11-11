@@ -164,6 +164,76 @@ end ; $
 
 delimiter ;
 
+/************************************************/
+            -- LABOS_RADNIK_KVAR: -- 
+/*
+Napisati proceduru (koristeći KURSOR) koja će za zadani naziv kvara
+dohvatiti sve radnike koji su imali više od 5 naloga s tim kvarom.
+Za svakog radnika potrebno je ažurirati stupac brNaloga u tablici radnik
+te podatke upisati u privremenu tablicu (šifra radnika, broj naloga).
+Procedura ima izlazni parametar poruka u kojem se vraća broj dohvaćenih
+i broj obrađenih redaka. Na kraju ispisati sadržaj privremene tablice.
+Napisati primjer poziva procedure.
+*/
+
+-- ALTER TABLE radnik ADD COLUMN brNaloga INT DEFAULT -1;
+
+use studenti;
+
+delimiter $
+drop procedure if exists proc $
+create procedure proc(in i_nazivKvar varchar(50), out poruka varchar(50))
+begin
+    declare v_dohvat, v_obrad, v_zastavica int default 0;
+    declare c_sifRadnik, c_brNaloga int;
+
+    declare kur cursor for
+        select n.sifRadnik, count(*) as broj
+        from nalog n
+        natural join kvar k
+        where nazivKvar = i_nazivKvar
+        group by n.sifRadnik
+        having count(*) > 5;
+
+    declare continue handler for not found set v_zastavica = 1;
+
+    set v_zastavica = 0;
+    drop temporary table if exists tmp;
+    create temporary table tmp(sifra int, broj int);
+
+    open kur;
+    select found_rows() into v_dohvat;
+
+    petlja:loop
+        fetch kur into c_sifRadnik, c_brNaloga;
+
+        if v_zastavica = 1 then
+            leave petlja;
+        end if;
+
+        update radnik
+        set brNaloga = c_brNaloga
+        where sifRadnik = c_sifRadnik;
+
+        set v_obrad = v_obrad + 1;
+
+        insert into tmp(sifra, broj)
+        values(c_sifRadnik, c_brNaloga);
+    end loop;
+
+    close kur;
+
+    set poruka = concat('Dohvaceno: ', v_dohvat, ', Obradeno: ', v_obrad);
+
+    select * from tmp;
+    drop temporary table tmp;
+end ; $
+
+delimiter ;
+
+call proc('Zamjena blatobrana', @por);
+select @por;
+
 
 select azurirajOdjel(9);
  select * from odjel;
