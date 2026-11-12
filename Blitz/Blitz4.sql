@@ -302,5 +302,66 @@ select @por;
 select * from studenti where idSmjer = 10;
 
 
+/**********************************************************************************************/
+
+
+alter table radionica
+add column izvrsnost varchar(10) default null;
+
+delimiter $ 
+use studenti $
+drop procedure if exists izvrsnost $
+create procedure izvrsnost(out poruka varchar(100))
+begin 
+    declare c_pSati, c_oSati, redaka, azurirano int default null;
+    declare c_postotak decimal(8,2) default null;
+    declare c_ozn varchar(50) default null;
+    declare flag bool default FALSE;
+
+    declare kursor cursor for
+        select r.oznRadionica,
+               sum(k.satiKvar) as planiraniSati,
+               sum(n.OstvareniSatiRada) as ostvareniSati,
+               sum(n.OstvareniSatiRada) / sum(k.satiKvar) * 100 as postotak
+        from radionica r
+        left join rezervacija rz on rz.oznRadionica = r.oznRadionica
+        left join kvar k         on k.sifKvar = rz.sifKvar
+        left join nalog n        on n.sifKvar = k.sifKvar
+        group by r.oznRadionica
+        order by 3 desc;
+    
+    declare continue handler for not found set flag = TRUE;
+    open kursor;
+    set redaka = FOUND_ROWS();
+    set azurirano = 0;
+
+    petlja:loop
+        fetch kursor into c_ozn, c_pSati, c_oSati, c_postotak;
+
+        if flag = TRUE then leave petlja;
+        end if;
+
+        if c_postotak > 3 then 
+            update radionica 
+            set izvrsnost = "OVER"
+            where oznRadionica = c_ozn;
+        else 
+            update radionica 
+            set izvrsnost = "UNDER"
+            where oznRadionica = c_ozn;
+        end if;
+
+        set azurirano = azurirano + 1;
+    end loop;
+    close kursor;
+    select CONCAT("Dohvaćeno ", redaka, ", Ažurirano ", azurirano) into poruka;
+end ; $
+
+delimiter ;
+
+call izvrsnost(@p);
+select @p;
+select * from radionica;
+
 select azurirajOdjel(9);
  select * from odjel;
