@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="hr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NBP kviz</title>
+<style>
+:root{--bg:#f5f7fb;--c:#fff;--t:#1a2233;--m:#5b6679;--b:#d5dbe7;--a:#2563eb;--ok:#16a34a;--no:#dc2626;--okb:#dcfce7;--nob:#fee2e2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1420;--c:#182033;--t:#e6ebf5;--m:#9aa6bd;--b:#2b3650;--a:#6b9cff;--okb:#12351f;--nob:#3b1717;color-scheme:dark}}
+html,body{margin:0;background:var(--bg);color:var(--t);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.2em 0}
+.card{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:16px;margin:12px 0}
+button{font:inherit;color:var(--t);background:var(--c);border:1px solid var(--b);border-radius:10px;padding:10px 14px;cursor:pointer;text-align:left}
+button:hover{border-color:var(--a)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border-radius:999px;padding:6px 12px}.chip.on{background:var(--a);color:#fff;border-color:var(--a)}
+.opt{display:block;width:100%;margin:8px 0}
+.opt.ok{background:var(--okb);border-color:var(--ok)}.opt.no{background:var(--nob);border-color:var(--no)}
+.pri{background:var(--a);color:#fff;border-color:var(--a)}
+.bar{height:6px;background:var(--b);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--a)}
+.m{color:var(--m);font-size:.9rem}
+code{font-family:ui-monospace,Menlo,monospace;font-size:.92em}
+</style></head><body><main id="app"></main>
+<script>
+const T={CTE:"CTE",SP:"Procedure i funkcije",KT:"Kontrola toka",KUR:"Kursori i handleri",TR:"Transakcije"};
+// [tema, pitanje, TOČAN, krivi1, krivi2, krivi3]
+const Q=[
+["CTE","CTE definiramo naredbom:","WITH","CREATE CTE","DECLARE CTE","TEMP TABLE AS"],
+["CTE","Za razliku od privremene tablice, CTE:","ne zahtijeva fizičku pohranu rezultata u zasebnu tablicu","uvijek se fizički sprema na disk","traje do kraja sesije","može se samo čitati iz procedure"],
+["CTE","U kojoj je verziji MySQL-a uveden CTE?","8.0.1","5.0","5.7","4.1"],
+["CTE","Način na koji će baza obraditi CTE ovisi o:","optimizatoru upita","veličini tablice na disku","korisničkim ovlastima","vrijednosti AUTOCOMMIT-a"],
+["CTE","Ako je potrebno više CTE-ova u jednom upitu:","piše se samo jedan WITH, a CTE-ovi se odvajaju zarezom","svaki CTE ima svoj WITH","odvajaju se točkom-zarezom","nije moguće"],
+["CTE","Glavna prednost CTE-a u odnosu na podupite nije nužno brzina nego:","čitljivost, ponovna uporaba međurezultata i rekurzivni upiti","manja potrošnja diska","automatsko indeksiranje","mogućnost mijenjanja tijela nakon izrade"],
+["CTE","Rekurzivni CTE je koristan za:","hijerarhijski strukturirane podatke","brisanje tablica","izradu okidača","upravljanje transakcijama"],
+["CTE","Koje instrukcije mogu referencirati CTE?","SELECT, UPDATE i DELETE","samo SELECT","samo SELECT i INSERT","samo DELETE"],
+["CTE","CTE je valjana alternativa VIEW-u kada:","korisnik nema ovlasti kreirati VIEW","je potrebno trajno spremiti podatke","je potrebna transakcija","tablica ima više od 10 stupaca"],
+["CTE","Ako se nazivi stupaca CTE-a ne navedu, uzimaju se iz:","subselecta unutar CTE-a","prve tablice u bazi","naziva CTE-a","INFORMATION_SCHEMA"],
+["CTE","Koja je kombinacija s WITH dopuštena?","INSERT INTO ... WITH ... SELECT ...","DROP TABLE ... WITH","COMMIT WITH ...","SET @x WITH ..."],
+["CTE","WITH se može koristiti i na početku:","podupita, npr. WHERE id IN (WITH ... SELECT ...)","naredbe DELIMITER","naredbe ROLLBACK","naredbe CALL"],
+["CTE","Funkcija QUARTER(datum) vraća:","kvartal (1-4) u kojem je datum","četvrtinu mjeseca","broj dana u godini","dan u tjednu"],
+["CTE","U primjeru s kvartalima i klijentima, tablica klijent se u CTE-u ne spaja jer:","agregiramo samo nad tablicom nalog, radi optimizacije","tablica klijent ne postoji","CTE ne podržava JOIN","GROUP BY ne radi s JOIN-om"],
+["CTE","U primjeru s kolegijima, WHERE ocjena > 1 se izvršava:","prije grupiranja (filtrira pojedinačne ocjene)","nakon grupiranja","nakon HAVING-a","tek u glavnom SELECT-u"],
+["CTE","U primjeru s kolegijima, HAVING COUNT(*) > 3 filtrira:","grupe (kolegije) s više od 3 pozitivna ispita","pojedinačne retke prije grupiranja","tablicu kolegiji","sortiranje"],
+["CTE","ORDER BY 3 DESC, 5 sortira po:","3. stupcu silazno, pa 5. stupcu uzlazno u SELECT listi","3. i 5. retku","stupcu 3 uzlazno, 5 silazno","trećoj tablici"],
+["SP","Pohranjeni zadaci proširuju SQL pomoću:","varijabli, naredbi kontrole toka i rukovanja iznimkama","samo okidača","samo pogleda","samo indeksa"],
+["SP","Zašto manje opterećuju mrežu?","klijent šalje samo ime zadatka i argumente","podaci se kompresiraju","koriste UDP","ne vraćaju rezultate"],
+["SP","Pohranjene rutine dijele se na:","procedure i funkcije","okidače i događaje","poglede i indekse","transakcije i kursore"],
+["SP","Procedura se poziva naredbom:","CALL","SELECT","EXEC","RUN"],
+["SP","Funkcija se poziva:","SELECT ime_funkcije(...)","CALL ime_funkcije(...)","EXEC ime_funkcije","RUN ime_funkcije"],
+["SP","Procedura rezultat vraća:","preko OUT/INOUT parametara (varijabli), ne naredbom RETURN","naredbom RETURN","samo preko okidača","ne može vratiti ništa"],
+["SP","Prednost u sigurnosti pohranjenih zadataka je:","GRANT dozvola na razini zadatka umjesto pristupa podacima","enkripcija tablica","zabrana SELECT naredbi","automatski backup"],
+["SP","Nedostatak pohranjenih zadataka je:","opterećuju DB server (CPU, memoriju) i otežavaju migraciju na drugi DBMS","sporiji prijenos mrežom","ne mogu koristiti varijable","ne mogu se brisati"],
+["SP","Zašto se mijenja DELIMITER pri izradi procedure?","jer se sve naredbe procedure moraju izvršiti kao cjelina, a ; bi prekinuo naredbu","da procedura bude brža","jer MySQL zahtijeva //","da bi se sakrio kod"],
+["SP","Koji graničnik NIJE preporučljiv?","oznaka koja se koristi u kodu, npr. * ili =","//","#","$$"],
+["SP","Brisanje procedure:","DROP PROCEDURE [IF EXISTS] ime","DELETE PROCEDURE ime","REMOVE PROCEDURE ime","ALTER PROCEDURE DROP"],
+["SP","Izvorni kod procedure prikazuje:","SHOW CREATE PROCEDURE ime","SHOW CODE ime","DESCRIBE ime","CALL ime"],
+["SP","Postojeće rutine nalaze se u:","INFORMATION_SCHEMA.ROUTINES","mysql.tables","performance_schema.procs","INFORMATION_SCHEMA.TRIGGERS"],
+["SP","Globalne (korisničke) varijable u MySQL-u:","počinju s @, vrijede u sesiji i ne moraju se deklarirati","deklariraju se s DECLARE","vrijede samo u bloku","počinju s #"],
+["SP","Lokalne varijable u procedurama:","deklariraju se na vrhu bloka, nakon BEGIN, prije drugog koda","deklariraju se bilo gdje","moraju početi s @","vrijede u cijeloj sesiji"],
+["SP","Pretpostavljeni tip parametra procedure ako se ne navede:","IN","OUT","INOUT","DETERMINISTIC"],
+["SP","INOUT parametar:","služi i kao ulaz i kao izlaz","samo kao ulaz","samo kao izlaz","dopušten je samo u funkcijama"],
+["SP","Nakon poziva procedure s OUT parametrom CALL p(@n), vrijednost se ispisuje:","SELECT @n;","PRINT @n;","SHOW @n;","RETURN @n;"],
+["SP","Parametri funkcije mogu biti:","samo ulazni (IN)","IN, OUT i INOUT","samo OUT","samo INOUT"],
+["SP","Funkcija mora imati:","RETURNS tip i naredbu RETURN","samo OUT parametar","samo CALL","DELIMITER ;"],
+["SP","Funkcija NE može:","vratiti set rezultata (skup n-torki)","vratiti jednu vrijednost","pisati u bazu","koristiti lokalne varijable"],
+["SP","Zašto je NOT DETERMINISTIC funkcija problem kod replikacije?","prenosi se naredba, pa funkcija (npr. random) na replici daje drugačiju vrijednost","replika ne podržava funkcije","funkcija se ne može kopirati","uvijek javlja grešku"],
+["SP","DETERMINISTIC funkcija za iste ulazne parametre:","uvijek vraća isti rezultat","vraća nasumičnu vrijednost","ne može vratiti NULL","radi samo s INT"],
+["SP","Karakteristika NO SQL znači:","unutar funkcije nema SQL naredbi (informacija)","SQL je zabranjen u bazi","funkcija ne vraća ništa","funkcija koristi NoSQL"],
+["SP","Kako promijeniti tijelo već pohranjene procedure/funkcije?","DROP pa ponovno CREATE","ALTER ... BODY","UPDATE ime","nije moguće ni tako"],
+["SP","Procedura/funkcija ne smije imati ime:","već ugrađene funkcije u MySQL-u","dulje od 5 znakova","s malim slovima","koje sadrži brojeve"],
+["SP","SELECT ... INTO varijabla kod običnih (ne-kursor) naredbi vraća:","točno jednu n-torku","bilo koliko n-torki","tablicu","samo NULL"],
+["KT","U SELECT-u IF(uvjet, a, b): treći argument:","obavezan je, makar bio prazan string ili NULL","nije obavezan","mora biti broj","zamjenjuje uvjet"],
+["KT","Vrijednost NULL u uvjetu je:","ni TRUE ni FALSE","FALSE","TRUE","0"],
+["KT","Koji su oblici CASE izraza?","CASE vrijednost WHEN ... i CASE WHEN uvjet ...","samo CASE WHEN uvjet","samo CASE vrijednost","CASE ... NEXT"],
+["KT","IFNULL(NULL, 55) vraća:","55","NULL","0","grešku"],
+["KT","IFNULL(izraz1, izraz2) vraća izraz2 kada:","je izraz1 NULL","je izraz1 jednak izrazu2","je izraz1 0","je izraz2 NULL"],
+["KT","NULLIF(1, 1) vraća:","NULL","1","0","TRUE"],
+["KT","NULLIF(1, 0) vraća:","1","NULL","0","FALSE"],
+["KT","Rezultat IF(@x>0, IF(@x>5,'veći od 5','manji od 5'),'negativna vrijednost') za @x=-1:","negativna vrijednost","veći od 5","manji od 5","NULL"],
+["KT","IF u pohranjenom zadatku zatvara se s:","END IF;","END;","ENDIF","FI"],
+["KT","Alternativna grana u pohranjenom IF-u piše se:","ELSEIF","ELSE IF THEN","ELIF","OTHERWISE"],
+["KT","CASE u pohranjenom zadatku završava s:","END CASE;","END;","ENDCASE","CASE END"],
+["KT","CASE u SELECT upitu završava s:","END","END CASE;","ESAC","STOP"],
+["KT","Razlika WHILE i REPEAT:","REPEAT izvršava tijelo barem jednom (uvjet UNTIL provjerava na kraju)","WHILE izvršava barem jednom","REPEAT provjerava uvjet na početku","nema razlike"],
+["KT","REPEAT petlja završava kada:","UNTIL uvjet postane istinit","WHILE uvjet postane istinit","varijabla postane NULL","dođe do ITERATE"],
+["KT","LEAVE ime_petlje u MySQL-u odgovara:","break u C-u","continue u C-u","return u C-u","goto u C-u"],
+["KT","ITERATE ime_petlje odgovara:","continue u C-u","break u C-u","exit u C-u","return u C-u"],
+["KT","DAYOFWEEK(CURDATE()) vraća 2 za:","ponedjeljak (nedjelja je 1)","utorak","nedjelju","subotu"],
+["KT","CONCAT_WS(',', str, var) razlikuje se od CONCAT jer:","prvi argument je separator pa nema viška zareza","vraća broj znakova","radi samo s brojevima","ne spaja NULL"],
+["KT","Petlja WHILE var<=5 s SET var=var+1; SELECT var; (var počinje s 1) ispisuje:","2, 3, 4, 5, 6","1, 2, 3, 4, 5","1 do 6","samo 6"],
+["KUR","Kursori služe za:","dohvat i obradu pojedinačnih n-torki rezultata SELECT upita","brisanje tablica","upravljanje transakcijama","izradu pogleda"],
+["KUR","Svojstva kursora:","read-only, ne može se vratiti na prethodni redak","može se mijenjati i vratiti unatrag","koristi se za INSERT i DELETE","uvijek je scrollable"],
+["KUR","Ispravan redoslijed rada s kursorom:","DECLARE, OPEN, FETCH, CLOSE","OPEN, DECLARE, FETCH, CLOSE","DECLARE, FETCH, OPEN, CLOSE","FETCH, OPEN, CLOSE, DECLARE"],
+["KUR","Kursor se deklarira:","nakon deklaracije varijabli, a prije drugog koda","bilo gdje u proceduri","prije varijabli","izvan procedure"],
+["KUR","Zašto ne koristimo SELECT * u deklaraciji kursora?","nije moguće odrediti koji atribut ide u koju varijablu, osobito pri promjeni strukture","* nije dopušten u SQL-u","kursor bi bio spor","FETCH ne radi s brojevima"],
+["KUR","Broj varijabli u FETCH ... INTO mora odgovarati:","broju atributa u SELECT dijelu kursora","broju redaka","broju tablica","broju petlji"],
+["KUR","FETCH kada nema više n-torki javlja grešku:","1329 / SQLSTATE 02000 (No data - zero rows fetched)","1062 / 23000","1146 / 42S02","1045 / 28000"],
+["KUR","CLOSE kursora:","oslobađa resurse (poželjno, iako ih engine oslobađa na kraju rutine)","briše tablicu","potvrđuje transakciju","je obavezan inače rutina ne radi"],
+["KUR","Tipovi handlera su:","CONTINUE, EXIT (UNDO nije implementiran)","BREAK, RETRY","CONTINUE, UNDO, SKIP","ROLLBACK, COMMIT"],
+["KUR","EXIT handler:","prekida izvršavanje bloka u kojem se nalazi","nastavlja izvršavanje bloka","poništava naredbu (UNDO)","samo ispisuje poruku"],
+["KUR","Pretpostavljena akcija za pogreške koje handler ne obuhvaća je:","EXIT","CONTINUE","UNDO","IGNORE"],
+["KUR","CONTINUE handler:","nastavlja izvršavanje bloka bez prekida","prekida blok","vraća transakciju","briše kursor"],
+["KUR","SQLSTATE koji počinje s '01' odgovara:","SQLWARNING","NOT FOUND","SQLEXCEPTION","uspjehu"],
+["KUR","SQLSTATE koji počinje s '02' odgovara:","NOT FOUND","SQLWARNING","SQLEXCEPTION","uspjehu"],
+["KUR","SQLEXCEPTION obuhvaća SQLSTATE koji NE počinje s:","00, 01 ili 02","23 ili 42","03 ili 04","samo 00"],
+["KUR","SQLSTATE '00000' označava:","uspješno izvršavanje (ne preporuča se u handleru)","duplicate key","nepostojeću tablicu","grešku sintakse"],
+["KUR","SQLSTATE '23000' u primjeru handlerdemo odgovara:","Duplicate key","No data","Table doesn't exist","Division by zero"],
+["KUR","U primjeru handlerdemo (CONTINUE handler za 23000, drugi INSERT duplicira ključ) SELECT @x vraća:","3","1","2","grešku"],
+["KUR","Greška 1146 / SQLSTATE 42S02 znači:","tablica ne postoji","dupli ključ","nema podataka","pogrešna lozinka"],
+["KUR","Uvjet handlera može biti:","SQLSTATE vrijednost, MySQL error code, imenovani CONDITION ili SQLWARNING/NOT FOUND/SQLEXCEPTION","samo SQLSTATE","samo naziv tablice","samo broj retka"],
+["KUR","DECLARE ime CONDITION FOR uvjet služi da:","pogrešci dodijelimo ime koje handler koristi","kreiramo kursor","pokrenemo transakciju","obrišemo handler"],
+["KUR","Tipičan CONTINUE HANDLER FOR NOT FOUND SET flag=TRUE u LOOP-u služi za:","prepoznavanje kraja kursora i LEAVE petlje","brisanje redaka","povećanje koeficijenta","zatvaranje transakcije"],
+["KUR","Kako procedura 'vrati' više n-torki pozivatelju iz kursora?","upis u privremenu tablicu (TEMPORARY TABLE)","RETURN s popisom","OUT parametar tipa tablica","nije moguće ni tako"],
+["KUR","Svaki SELECT unutar procedure daje:","zaseban set rezultata","jedan zajednički set","grešku","samo zadnji redak"],
+["KUR","Funkcija u primjeru s privremenom tablicom:","ne može ispisati sadržaj tablice; ispis se radi izvan funkcije","ispisuje tablicu s PRINT","ne može koristiti kursor","ne može koristiti INSERT"],
+["KUR","Uobičajen EXIT handler FOR SQLEXCEPTION u transakciji radi:","ROLLBACK i postavljanje poruke o grešci","COMMIT","DROP TABLE","ITERATE"],
+["TR","Transakcija je:","nedjeljiva jedinica rada (slijed operacija) nad bazom","jedna SELECT naredba","vrsta indeksa","kopija baze"],
+["TR","Načelo 'sve ili ništa' znači da se transakcija:","provodi u cijelosti ili nikako, radi očuvanja integriteta","izvršava u dijelovima","uvijek potvrđuje","izvršava bez logova"],
+["TR","Početak transakcije:","START TRANSACTION, BEGIN WORK ili BEGIN","OPEN TRANSACTION","SAVEPOINT","SET COMMIT"],
+["TR","ROLLBACK:","poništava sve promjene od početka transakcije","trajno sprema promjene","briše tablicu","pokreće novu transakciju"],
+["TR","Implicitna transakcija znači da:","svaka naredba izmjene je zasebna transakcija (uspjeh = COMMIT)","transakcija nikad ne završava","je potreban BEGIN","radi samo s DDL-om"],
+["TR","Transakcije u MySQL-u:","ne mogu se ugnježđivati","mogu se ugnježđivati neograničeno","dopuštaju do 2 razine","zahtijevaju MyISAM"],
+["TR","Transakcije ne podržavaju opoziv:","DDL naredbi (npr. CREATE/DROP/ALTER TABLE)","UPDATE naredbi","INSERT naredbi","DELETE naredbi"],
+["TR","DDL naredbe poput CREATE TABLE izazivaju:","implicitni COMMIT","implicitni ROLLBACK","SAVEPOINT","deadlock"],
+["TR","Inicijalna vrijednost AUTOCOMMIT-a u MySQL-u:","1","0","NULL","ovisi o tablici"],
+["TR","Da bi više naredbi činilo jednu transakciju, potrebno je:","SET AUTOCOMMIT=0 i engine s transakcijama (InnoDB)","SET AUTOCOMMIT=1 i MyISAM","samo DELIMITER","samo CALL"],
+["TR","Alternativa InnoDB-u su pseudotransakcije koje:","imitiraju transakcije zaključavanjem tablica/stranica/redaka","podržavaju pun ACID","koriste COMMIT","koriste kursore"],
+["TR","Ako se sesija nenadano prekine uz AUTOCOMMIT=0, MySQL:","automatski napravi opoziv (rollback)","potvrdi promjene","zamrzne bazu","obriše tablice"],
+["TR","SAVEPOINT služi za:","kasniji djelomični opoziv do označene točke","trajno spremanje","brisanje transakcije","zaključavanje tablice"],
+["TR","ROLLBACK TO SAVEPOINT tocka:","poništava naredbe nakon točke, transakcija ostaje aktivna","završava transakciju","briše točku i potvrđuje","poništava sve od početka"],
+["TR","Stanje autocommit-a može se provjeriti:","SHOW VARIABLES WHERE variable_name='autocommit'","SHOW AUTOCOMMIT","SELECT @@commit_state","DESCRIBE autocommit"],
+["TR","ACID: A označava:","Atomicity (atomarnost)","Availability","Accuracy","Authorization"],
+["TR","ACID: C, I, D označavaju:","Consistency, Isolation, Durability","Concurrency, Integrity, Data","Commit, Index, Disk","Control, Isolation, Delete"],
+["TR","Primjer bankovnog transfera: ne može se skinuti iznos s A bez dodavanja na B ilustrira:","Atomicity","Isolation","Durability","Consistency"],
+["TR","Primjer: suma stanja oba računa jednaka je na početku i kraju ilustrira:","Consistency","Atomicity","Durability","Isolation"],
+["TR","Primjer: ostali upiti ne vide A i B dok transakcija ne završi ilustrira:","Isolation","Atomicity","Durability","Consistency"],
+["TR","Primjer: nakon obavljenog transfera nema povratka, čak ni pri kvaru ilustrira:","Durability","Isolation","Atomicity","Consistency"],
+["TR","Izdržljivost (durability) se osigurava pomoću:","logova (promjene se evidentiraju prije zapisa na disk)","indeksa","privremenih tablica","kursora"],
+["TR","Izolacija znači da paralelne transakcije daju učinak:","kao da su izvršene jedna iza druge","uvijek različit","neodređen","samo za čitanje"],
+["TR","Serijabilno izvršavanje je ono kojem je učinak isti kao:","serijsko (sekvencijalno) izvršavanje transakcija","paralelno izvršavanje bez kontrole","izvršavanje samo jedne transakcije","izvršavanje bez logova"],
+["TR","Stanje transakcije nakon izvršene zadnje operacije:","djelomično završena (partially committed)","aktivna","neispravna (failed)","neuspješno završena (aborted)"],
+["TR","Stanje 'aborted' znači:","efekti su poništeni, baza vraćena u stanje prije početka","uspješan završetak","transakcija se izvodi","čeka na zaključavanje"],
+["TR","Nakon točke potvrđivanja (commit point):","izmjene su trajne i ne mogu se poništiti","izmjene se još mogu poništiti ROLLBACK-om","ključevi se zaključavaju","transakcija je aktivna"],
+["TR","Glavno svojstvo transakcije je da bazu prevodi:","iz jednog konzistentnog stanja u drugo","iz praznog stanja u puno","u stanje bez podataka","u stanje bez logova"],
+["TR","Dio sustava koji nadgleda obavljanje transakcija je:","transaction manager (TP monitor)","query optimizer","backup manager","parser"],
+["TR","Primjer s dva INSERT-a istog ključa bez obrade greške: izvršit će se:","sve naredbe koje su izvedive","ništa","samo prva i rollback","samo zadnja"],
+["TR","Koji tip greške se NE smatra razrušenjem?","greške koje aplikacija otkriva i greške unutar transakcije (npr. dijeljenje s nulom)","kvar računalskog sustava","kvar medija za pohranu","fizičko uništenje baze"],
+["TR","Kvar medija za pohranu znači:","fizički uništena baza","baza fizički nije uništena","greška aplikacije","greška operatera"],
+["TR","Obnova u slučaju razrušenja dovodi bazu u:","najnovije stanje za koje se pouzdano zna da je ispravno","početno prazno stanje","stanje po želji korisnika","stanje prije instalacije"],
+["TR","Male jednokorisničke baze obično se obnavljaju:","vraćanjem na sigurnosnu kopiju","logovima i TP monitorom","serijabilnošću","dvofaznim zaključavanjem"]
+];
+const $=s=>document.querySelector(s),app=$("#app");
+let sel=new Set(Object.keys(T)),qs=[],i=0,sc=0,wrong=[],done=false;
+const sh=a=>{a=[...a];for(let k=a.length-1;k>0;k--){const j=Math.random()*(k+1)|0;[a[k],a[j]]=[a[j],a[k]]}return a};
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function home(){
+ app.innerHTML=`<h1>NBP teorijski kviz</h1><div class="m">${Q.length} pitanja iz predavanja 01–05 (CTE, procedure i funkcije, kontrola toka, kursori i handleri, transakcije)</div>
+ <div class="card"><button class="pri" id="go">Počni kviz (sva pitanja, nasumičnim redom)</button><details style="margin-top:12px"><summary class="m">Filtriraj po temama (neobavezno)</summary><div class="chips" style="margin:10px 0">${Object.entries(T).map(([k,v])=>`<button class="chip ${sel.has(k)?"on":""}" data-k="${k}">${v} (${Q.filter(q=>q[0]==k).length})</button>`).join("")}</div></details></div>`;
+ app.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{const k=b.dataset.k;sel.has(k)?sel.delete(k):sel.add(k);home()});
+ $("#go").onclick=()=>{if(!sel.size)return;qs=sh(Q.filter(q=>sel.has(q[0])));i=0;sc=0;wrong=[];show()};
+}
+function show(){
+ if(i>=qs.length)return end();
+ const q=qs[i],o=sh(q.slice(2).map((t,n)=>({t,c:n==0})));
+ app.innerHTML=`<div class="m">${i+1}/${qs.length} · točno: ${sc}</div><div class="bar"><i style="width:${i/qs.length*100}%"></i></div>
+ <div class="card"><b>${esc(q[1])}</b><div id="os">${o.map((x,n)=>`<button class="opt" data-n="${n}">${esc(x.t)}</button>`).join("")}</div><div id="nx"></div></div>`;
+ app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+  const x=o[b.dataset.n];app.querySelectorAll(".opt").forEach((e,n)=>{e.disabled=true;if(o[n].c)e.classList.add("ok")});
+  if(x.c)sc++;else{b.classList.add("no");wrong.push(q)}
+  $("#nx").innerHTML=`<button class="pri" id="n">${i+1<qs.length?"Sljedeće":"Rezultat"}</button>`;$("#n").onclick=()=>{i++;show()}});
+}
+function end(){
+ const p=Math.round(sc/qs.length*100);
+ app.innerHTML=`<h1>Rezultat: ${sc}/${qs.length} (${p}%)</h1><div class="card"><button class="pri" id="r">Novi kviz</button> <button id="w" ${wrong.length?"":"disabled"}>Ponovi samo pogrešne (${wrong.length})</button></div>
+ ${wrong.length?`<div class="card"><b>Pogrešno odgovoreno</b>${wrong.map(q=>`<p><span class="m">${esc(q[1])}</span><br>✔ ${esc(q[2])}</p>`).join("")}</div>`:""}`;
+ $("#r").onclick=home;$("#w").onclick=()=>{qs=sh(wrong);i=0;sc=0;wrong=[];show()};
+}
+home();
+</script></body></html>

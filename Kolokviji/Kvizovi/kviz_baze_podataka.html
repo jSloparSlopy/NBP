@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Baze podataka – kviz za 1. kolokvij</title>
+<style>
+:root{--bg:#fff;--fg:#1f2328;--mut:#6b7280;--card:#f6f8fa;--bd:#d0d7de;--ac:#2563eb;--ok:#16a34a;--okb:#dcfce7;--no:#dc2626;--nob:#fee2e2}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mut:#9aa4b2;--card:#161b22;--bd:#30363d;--ac:#58a6ff;--ok:#4ade80;--okb:#12301d;--no:#f87171;--nob:#3a1717}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:820px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.3em 0}.mut{color:var(--mut);font-size:.9rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+nav button{border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:6px 12px;border-radius:8px;cursor:pointer}
+nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.q{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin:12px 0}
+.p{white-space:pre-wrap;font-weight:600;margin:0 0 10px}
+.o{display:block;width:100%;text-align:left;margin:6px 0;padding:8px 10px;border:1px solid var(--bd);background:var(--bg);color:var(--fg);border-radius:8px;cursor:pointer;font:inherit}
+.o:hover:not(:disabled){border-color:var(--ac)}
+.o.ok{background:var(--okb);border-color:var(--ok)}.o.no{background:var(--nob);border-color:var(--no)}
+.e{margin-top:8px;font-size:.92rem;color:var(--mut)}
+.bar{position:sticky;top:0;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.bar button{border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:5px 10px;border-radius:8px;cursor:pointer}
+</style></head><body><main>
+<h1>Baze podataka – 1. kolokvij</h1>
+<div class="mut">Klikni odgovor. Točan +1 bod, netočan −0,25 boda (prilagodi u kodu: const NEG). Neodgovoreno = 0.</div>
+<div class="bar"><div id="sc"></div><button onclick="reset()">Resetiraj sve</button></div>
+<nav id="nav"></nav><div id="qs"></div>
+<script>
+const NEG=0.25;
+const T=[
+["CTE",[
+["Što je CTE (Common Table Expression)?",["Trajno pohranjen objekt u bazi za više upita","Imenovani privremeni rezultat upita koji vrijedi samo u naredbi u kojoj je definiran","Vrsta indeksa","Pohranjena procedura koja vraća tablicu"],1,"Postoji samo tijekom izvođenja jedne naredbe."],
+["Koja sintaksa ispravno definira CTE?",["CTE ime AS (SELECT ...) SELECT * FROM ime;","CREATE CTE ime AS SELECT ...;","WITH ime AS (SELECT ...) SELECT * FROM ime;","SELECT * FROM (WITH ime SELECT ...);"],2,"WITH ime AS (podupit) glavni_upit."],
+["Koja je tvrdnja o CTE-u NETOČNA?",["Može se referencirati više puta u istoj naredbi","Može referencirati raniji CTE iz iste WITH klauzule","Nakon naredbe ostaje pohranjen u bazi za idući upit","Jednim WITH može se definirati više CTE-ova"],2,"CTE nije objekt baze, nestaje s naredbom."],
+["Kako se u jednoj naredbi definira više CTE-ova?",["Svaki ima svoj WITH","Jedan WITH, CTE-ovi odvojeni zarezom","Spajaju se s UNION","Odvajaju se točkom-zarez"],1,"WITH a AS (...), b AS (...) SELECT ..."],
+["Koja ključna riječ omogućuje da CTE referencira samog sebe?",["WITH LOOP","WITH REPEAT","RECURSIVE WITH","WITH RECURSIVE"],3,"WITH RECURSIVE."],
+["Od čega se sastoji rekurzivni CTE?",["Samo od rekurzivnog SELECT-a","Od početnog (nerekurzivnog) i rekurzivnog SELECT-a spojenih s UNION [ALL]","Od dva JOIN-a","Od WHILE petlje i kursora"],1,"Početni dio daje prve retke, rekurzivni se ponavlja dok ne vrati ništa."],
+["Što vraća upit?\n\nWITH RECURSIVE br (n) AS (\n  SELECT 1\n  UNION ALL\n  SELECT n+1 FROM br WHERE n < 5\n)\nSELECT SUM(n) FROM br;",["10","5","15","Pogrešku"],2,"1+2+3+4+5 = 15."],
+["Što vraća upit?\n\nWITH RECURSIVE t (n) AS (\n  SELECT 1\n  UNION ALL\n  SELECT n*2 FROM t WHERE n < 20\n)\nSELECT MAX(n) FROM t;",["16","20","64","32"],3,"1,2,4,8,16,32: iz 16 (16<20) nastaje 32, a iz 32 se staje."],
+["Što se događa ako rekurzivni CTE nema uvjet zaustavljanja?",["Vrti se beskonačno","Pogreška kad se prijeđe cte_max_recursion_depth (zadano 1000)","Vraća prazan skup","Rekurzija se ignorira"],1,"Granica je cte_max_recursion_depth."],
+["Razlika CTE-a i pogleda (VIEW)?",["Pogled je trajni objekt baze, CTE vrijedi samo za jednu naredbu","CTE je trajni objekt, pogled za jednu naredbu","Nema razlike","Samo CTE može imati indekse"],0,"Pogled se kreira s CREATE VIEW."],
+["Za što je rekurzivni CTE najprikladniji?",["Zbrajanje stupaca u retku","Grupiranje po stupcu","Obilazak hijerarhijskih podataka (nadređeni – podređeni)","Brisanje tablice"],2,"Stabla i hijerarhije."],
+["Ispred kojih naredbi u MySQL-u 8.0 može stajati WITH?",["Samo SELECT","Samo CREATE TABLE","SELECT, UPDATE i DELETE","Samo INSERT"],2,"MySQL 8.0 to dopušta."]
+]],
+["Procedure i funkcije",[
+["Osnovna razlika funkcije i procedure?",["Funkcija vraća skup rezultata, procedura jednu vrijednost","Funkcija direktno vraća skalar (RETURN), procedura preko OUT/INOUT parametara ili SELECT-a","Funkcija može imati OUT parametre","Nema razlike"],1,"Funkcija vraća jednu skalarnu vrijednost."],
+["Koji je par poziva ispravan?",["CALL funkcija(); SELECT procedura();","SELECT funkcija(); SELECT procedura();","CALL funkcija(); CALL procedura();","CALL procedura(); SELECT funkcija();"],3,"Procedura: CALL, funkcija: SELECT."],
+["Što ako se u CREATE FUNCTION ispred parametra navede IN?",["Ništa, dopušteno je","Funkcija postaje determinstička","Sintaksna pogreška","Funkcija postaje procedura"],2,"Funkcije imaju samo ulazne parametre pa se IN ne navodi."],
+["Zadani tip parametra procedure ako se ne navede?",["OUT","IN","INOUT","Pogreška"],1,"Podrazumijeva se IN."],
+["Što ispisuje zadnja naredba?\n\nCREATE PROCEDURE p(IN a INT, OUT b INT)\nBEGIN SET b = a * 2; END;\n\nCALL p(5, @r);\nSELECT @r;",["5","NULL","10","Pogrešku"],2,"b = 5*2 = 10."],
+["Što ispisuje zadnja naredba?\n\nCREATE PROCEDURE q(INOUT x INT)\nBEGIN SET x = x + 10; END;\n\nSET @v = 5;\nCALL q(@v);\nSELECT @v;",["5","15","10","NULL"],1,"INOUT je i ulaz i izlaz: 5+10."],
+["Što ispisuje zadnja naredba?\n\nCREATE PROCEDURE r(IN x INT)\nBEGIN SET x = x + 1; END;\n\nSET @v = 3;\nCALL r(@v);\nSELECT @v;",["4","NULL","Pogrešku","3"],3,"Promjena IN parametra ne utječe na pozivatelja."],
+["Zašto se prije CREATE PROCEDURE mijenja graničnik?",["Radi brzine","Da MySQL ne prekine naredbu na prvom ; u tijelu","Inače se procedura ne može pohraniti","// služi za komentare"],1,"Cijela rutina mora ići kao jedna cjelina."],
+["Koja naredba za promjenu graničnika je ispravna?",["DELIMITER //","DELIMITER//","SET DELIMITER = //","CHANGE DELIMITER //"],0,"Razmak je obavezan."],
+["DROP PROCEDURE IF EXISTS za nepostojeću proceduru?",["Pogreška i prekid","Samo upozorenje (warning)","Kreira se prazna procedura","Brišu se sve procedure"],1,"Note 1305."],
+["Što se može promijeniti s ALTER PROCEDURE?",["Samo karakteristike, ne i tijelo","Samo tijelo","Parametri i tijelo","Ime"],0,"Za tijelo: DROP pa CREATE."],
+["Koja je tvrdnja o varijablama točna?",["Varijable s @ moraju se deklarirati s DECLARE","Lokalne varijable počinju s @","Lokalne se deklariraju na vrhu BEGIN...END bloka i ne počinju s @","Varijable s @ vidljive su samo u jednoj proceduri"],2,"@ varijable vrijede u sesiji i ne deklariraju se."],
+["Zadana vrijednost karakteristike funkcije?",["DETERMINISTIC","NOT DETERMINISTIC","READS SQL DATA","Pogreška"],1,"Pretpostavljeno je NOT DETERMINISTIC."],
+["Koja je tvrdnja o funkciji točna?",["Može ispisivati skup rezultata običnim SELECT-om","Mora vratiti vrijednost, tip se navodi s RETURNS","Može imati OUT parametre","Poziva se s CALL"],1,"RETURNS tip je obavezan."],
+["Funkcija f(jmbag) pozvana je u SELECT-u nad tablicom sa 162 retka. Koliko se puta izvrši?",["Jednom","162 puta","Nijednom","Dvaput"],1,"Za svaki redak rezultata."]
+]],
+["Kontrola toka",[
+["Ispravna sintaksa IF uvjetovanja?",["IF uvjet { ... } ELSE IF ...","IF uvjet THEN ... ELSE IF uvjet THEN ... END","IF uvjet THEN ... ELSEIF uvjet THEN ... ELSE ... END IF;","IF (uvjet) DO ... END IF;"],2,"ELSEIF se piše spojeno."],
+["Kojom se naredbom zatvara CASE u pohranjenoj proceduri?",["END;","END CASE","ENDCASE;","END IF"],1,"END CASE."],
+["Što znači DAYOFWEEK(NOW()) = 2?",["Nedjelja","Utorak","Petak","Ponedjeljak"],3,"1 = nedjelja, 2 = ponedjeljak."],
+["Funkcija ima DECLARE poruka VARCHAR(255); i samo IF DAYOFWEEK(NOW()) BETWEEN 2 AND 6 THEN SET poruka='Danas je radni dan'; END IF; RETURN poruka; Što vraća u nedjelju?",["Prazan string","NULL","Pogrešku zbog nedostatka ELSE","'Danas je radni dan'"],1,"Varijabla bez DEFAULT-a je NULL."],
+["CASE u proceduri, nijedan WHEN ne odgovara, nema ELSE. Što se događa?",["Pogreška 1339: Case not found for CASE statement","Izvrši se prvi WHEN","Ništa, nastavlja se","Vrati se NULL"],0,"Pogreška 1339."],
+["Razlika WHILE i REPEAT...UNTIL?",["WHILE provjerava na kraju, REPEAT na početku","Obje na kraju","WHILE provjerava uvjet na početku, REPEAT na kraju iteracije","Obje na početku"],2,"REPEAT se izvrši barem jednom."],
+["Neka je i = 0. Koliko se puta izvrši tijelo?\n\nWHILE i < 0 DO SET i = i + 1; END WHILE;\n\nREPEAT SET i = i + 1; UNTIL i >= 0 END REPEAT;",["WHILE 1, REPEAT 0","WHILE 0, REPEAT 1","Obje 0","Obje 1"],1,"REPEAT prvo izvrši tijelo, pa provjeri."],
+["Koliko je s nakon petlje?\n\nSET i = 0; SET s = 0;\npetlja: LOOP\n  SET i = i + 1;\n  IF i = 2 THEN ITERATE petlja; END IF;\n  SET s = s + i;\n  IF i >= 4 THEN LEAVE petlja; END IF;\nEND LOOP;",["10","6","4","8"],3,"1 + 3 + 4 = 8 (i=2 se preskoči)."],
+["Koliko je s?\n\nSET i = 0; SET s = 0;\nWHILE i < 5 DO\n  SET i = i + 1;\n  SET s = s + i;\nEND WHILE;",["15","10","5","0"],0,"1+2+3+4+5."],
+["Koja petlja NE postoji u pohranjenim zadacima u MySQL-u?",["WHILE","LOOP","FOR","REPEAT"],2,"Postoje WHILE, REPEAT i LOOP."],
+["Što rade LEAVE i ITERATE?",["LEAVE ide na iduću iteraciju, ITERATE izlazi","LEAVE izlazi iz petlje, ITERATE ide na iduću iteraciju","Obje izlaze iz procedure","Obje zaustavljaju naredbu"],1,"LEAVE = izlaz, ITERATE = nastavak."],
+["Rekurzija u pohranjenim zadacima u MySQL-u?",["Podržane funkcije, ne procedure","Podržane procedure, ne funkcije","Oboje bez ograničenja","Ništa"],1,"Rekurzivne funkcije nisu podržane."],
+["Zadana vrijednost max_sp_recursion_depth?",["1000","255","10","0"],3,"Zadano 0, pa greška 1456 pri prvom rekurzivnom pozivu."]
+]],
+["Kursori, conditioni i handleri",[
+["Čemu služi kursor?",["Ažuriranje više redaka","Dohvat i obrada rezultata SELECT-a n-torku po n-torku","Brisanje duplikata","Izrada indeksa"],1,"Služi samo za dohvat."],
+["Redoslijed rada s kursorom?",["OPEN, DECLARE, FETCH, CLOSE","DECLARE, FETCH, OPEN, CLOSE","FETCH, DECLARE, OPEN, CLOSE","DECLARE, OPEN, FETCH, CLOSE"],3,"DECLARE, OPEN, FETCH, CLOSE."],
+["Kakvi su kursori u MySQL-u?",["Samo čitanje i samo prema naprijed","Mogu se kretati unatrag","Mogu skočiti na bilo koji redak","Mogu mijenjati podatke"],0,"Slijedni su i read-only."],
+["Redoslijed deklaracija na početku procedure?",["Handler, kursor, varijable","Kursor, varijable, handler","Varijable (i conditioni), kursor, handler","Nije bitan"],2,"Inače pogreške 1337/1338."],
+["Kursor dohvaća 3 stupca, FETCH ima 2 varijable. Što će se dogoditi?",["Dohvati se samo prva vrijednost","Pogreška (Incorrect number of FETCH variables)","Višak se ignorira","Kursor se zatvori bez pogreške"],1,"Pogreška 1328."],
+["Zašto ne koristiti SELECT * u kursoru?",["Nije dopušteno","Sporiji je za 50%","Kursor se ne može zatvoriti","Promjena broja stupaca ruši podudaranje s brojem varijabli u FETCH-u"],3,"Broj stupaca i varijabli mora se podudarati."],
+["LOOP s FETCH-om, bez LEAVE i handlera, tablica ima 9 redaka. Što se događa u 10. iteraciji?",["Petlja se mirno završi","Vrti se beskonačno","Pogreška 1329 i procedura se prekida","FETCH vrati zadnju n-torku"],2,"No data – zero rows fetched."],
+["SQLSTATE za NOT FOUND počinje s?",["02","01","00","23"],0,"02 (npr. 02000, MySQL 1329)."],
+["Što obuhvaća SQLEXCEPTION?",["Samo grešku 1062","Svi SQLSTATE koji ne počinju s 00, 01 ili 02","Samo upozorenja","Samo NOT FOUND"],1,"Sve osim 00, 01, 02."],
+["Razlika CONTINUE i EXIT handlera?",["CONTINUE prekida proceduru, EXIT nastavlja","Obje prekidaju","CONTINUE nastavlja nakon naredbe koja je izazvala grešku, EXIT prekida blok","Obje nastavljaju"],2,"UNDO nije implementiran."],
+["Koliko je @x nakon poziva (s1 je PRIMARY KEY)?\n\nCREATE PROCEDURE duplicate()\nBEGIN\n  DECLARE CONTINUE HANDLER FOR SQLSTATE '23000' SET @x = 1;\n  SET @x = 1;\n  INSERT INTO t VALUES (1);\n  SET @x = 2;\n  INSERT INTO t VALUES (1);\n  SET @x = 3;\nEND;",["3","1","2","Pogreška"],0,"CONTINUE handler: izvođenje se nastavlja do kraja."],
+["Tablica ima 3 retka, handler: CONTINUE HANDLER FOR NOT FOUND SET kraj = TRUE. Koliko se puta izvrši SELECT v?\n\npetlja: LOOP\n  FETCH k INTO v;\n  SELECT v;\n  IF kraj THEN LEAVE petlja; END IF;\nEND LOOP;",["3","4","2","Pogreška 1329"],1,"Zadnji FETCH ne dohvati ništa, v ostaje stara pa se ispiše 4. put."],
+["Gdje treba provjeriti zastavicu NOT FOUND handlera?",["Na početku procedure","Nakon CLOSE","Prije OPEN","Odmah nakon FETCH-a"],3,"Inače se zadnji redak obradi dvaput."],
+["Što radi?\n\nDECLARE EXIT HANDLER FOR SQLEXCEPTION\nBEGIN\n  ROLLBACK;\n  SELECT 'Dogodila se pogreška';\nEND;",["Nastavlja i briše tablicu","Ignorira pogreške","Pri SQLEXCEPTION poništi transakciju i prekine blok","Hvata samo NOT FOUND"],2,"Česta primjena u transakcijskim procedurama."],
+["Kako se deklarira condition za grešku 1050?",["DECLARE ime HANDLER FOR 1050;","DECLARE ime CONDITION FOR 1050;","CREATE CONDITION ime FOR 1050;","SET CONDITION ime = 1050;"],1,"DECLARE ime CONDITION FOR kod."],
+["Kada NE treba koristiti kursor?",["Kad isti posao radi jedan SQL upit nad svim zapisima","Kad svaki redak treba složenu logiku","Kad se obrađuje više tablica po retku","Kad se obrađuje samo dio zapisa"],0,"Jedan upit je brži i jednostavniji."]
+]],
+["Transakcije",[
+["Zašto se transakcija opisuje načelom „sve ili ništa“?",["Skup naredbi izvodi se kao nedjeljiva cjelina","Objekt s imenom koji se backupira","Jedna SELECT naredba","Naziv za backup"],0,"Ili COMMIT ili ROLLBACK."],
+["Granice transakcije?",["OPEN i CLOSE","BEGIN i END","CALL i RETURN","START TRANSACTION (ili BEGIN) i COMMIT / ROLLBACK"],3,"Početak i kraj."],
+["Zadani autocommit u MySQL-u?",["Isključen","Uključen, svaka naredba odmah se potvrđuje","Ovisi o tablici","Isključen za INSERT"],1,"Svaka naredba je zasebna transakcija."],
+["Autocommit = 1, bez START TRANSACTION. Što ostaje?\n\nINSERT INTO menze (naziv) VALUES ('A');\nINSERT INTO menze (naziv) VALUES ('B');\nROLLBACK;",["Nijedna","Samo A","A i B","Samo B"],2,"Svaki INSERT je već potvrđen."],
+["Koji mehanizam pohrane podržava transakcije?",["MyISAM","InnoDB","MEMORY","CSV"],1,"Nad MyISAM ROLLBACK ne poništava."],
+["Što znači ACID?",["Atomarnost, Kompatibilnost, Izolacija, Distribucija","Atomarnost, Konzistentnost, Integritet, Dostupnost","Aktivnost, Konzistentnost, Izolacija, Dnevnik","Atomarnost, Konzistentnost, Izolacija, Izdržljivost"],3,"Atomicity, Consistency, Isolation, Durability."],
+["Koje svojstvo osigurava da potvrđene promjene prežive pad sustava?",["Izdržljivost","Izolacija","Atomarnost","Konzistentnost"],0,"Durability, uz binarni dnevnik."],
+["Što opisuje izolacija?",["Izvodi se u cijelosti ili uopće","Promjene su trajne","Paralelne transakcije imaju učinak kao da se izvode jedna za drugom","Baza ostaje ispravna"],2,"Serijsko izvođenje."],
+["Prebacivanje novca A → B mora se izvesti u cijelosti ili uopće. Koje je to svojstvo?",["Izolacije","Atomarnosti","Izdržljivosti","Serijabilnosti, koja je dio ACID-a"],1,"Atomarnost."],
+["Unutar transakcije CREATE TABLE menze3 (...), zatim ROLLBACK. Što je s tablicom?",["Ne postoji","Pogreška pri CREATE TABLE","Postoji, ali zaključana","Postoji, ROLLBACK je nije opozvao"],3,"DDL izaziva implicitni COMMIT."],
+["Autocommit = 0. Što ostaje?\n\nSTART TRANSACTION;\nINSERT INTO menze (naziv) VALUES ('A');\nCREATE TABLE t2 (id INT);\nINSERT INTO menze (naziv) VALUES ('B');\nROLLBACK;",["Ništa","A i tablica t2, B je poništen","Samo tablica t2","A, B i t2"],1,"CREATE TABLE je potvrdio A; ROLLBACK poništava samo B."],
+["START TRANSACTION unutar aktivne transakcije?",["Implicitno se potvrdi (COMMIT) prethodna","Ugnijezdi se","Prethodna se opozove","Pogreška"],0,"Transakcije se ne mogu ugnježđivati."],
+["Naredbe za točku pohranjivanja i poništavanje do nje?",["SET SAVEPOINT ime; UNDO TO ime;","CREATE SAVEPOINT ime; ROLLBACK ime;","SAVEPOINT ime; ROLLBACK TO SAVEPOINT ime;","MARK ime; BACK TO ime;"],2,"Brisanje točke: RELEASE SAVEPOINT."],
+["Što ostaje nakon COMMIT-a?\n\nSET AUTOCOMMIT = 0;\nSTART TRANSACTION;\nINSERT INTO menze (naziv) VALUES ('A');\nSAVEPOINT s1;\nINSERT INTO menze (naziv) VALUES ('B');\nSAVEPOINT s2;\nINSERT INTO menze (naziv) VALUES ('C');\nROLLBACK TO SAVEPOINT s1;\nCOMMIT;",["A, B i C","A i B","Nijedna","Samo A"],3,"Poništeni su B i C."],
+["Menza ima 1 n-torku (id = 1). Dvije su unesene i opozvane (ROLLBACK), zatim se unesu još dvije i potvrde. Koji id-ovi?",["2 i 3","1 i 2","4 i 5","3 i 4"],2,"AUTO_INCREMENT se ne vraća."],
+["Prva sesija: INSERT u transakciji bez COMMIT. Vidi li redak druga sesija?",["Da","Ne, dok prva ne napravi COMMIT","Samo ako druga napravi ROLLBACK","Nikad"],1,"Nepotvrđene promjene nisu vidljive."],
+["Stanje transakcije nakon zadnje operacije, a prije potvrde?",["Djelomično završena (partially committed)","Potvrđena","Neuspješno završena (aborted)","Aktivna"],0,"Stanja: aktivna, djelomično završena, neispravna, neuspješno završena, potvrđena."],
+["Koja naredba unutar transakcije izaziva implicitni COMMIT?",["UPDATE","SELECT","ALTER TABLE","INSERT"],2,"DDL naredbe (CREATE, DROP, ALTER ...) potvrđuju implicitno."]
+]]
+];
+let cur=0,A=T.map(t=>t[1].map(()=>-1));
+const L="ABCD";
+function nav(){document.getElementById("nav").innerHTML=T.map((t,i)=>`<button class="${i==cur?"on":""}" onclick="cur=${i};draw()">${i+1}. ${t[0]} (${t[1].length})</button>`).join("")}
+function score(){let p=0,n=0,a=0,tot=0;T.forEach((t,i)=>t[1].forEach((q,j)=>{tot++;const x=A[i][j];if(x>=0){a++;x==q[2]?p++:n++}}));
+document.getElementById("sc").innerHTML=`Odgovoreno ${a}/${tot} · točno ${p} · netočno ${n} · <b>bodovi: ${(p-n*NEG).toFixed(2)}</b>`}
+function pick(j,k){if(A[cur][j]<0){A[cur][j]=k;draw()}}
+function draw(){nav();score();const e=(s)=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+document.getElementById("qs").innerHTML=T[cur][1].map((q,j)=>{const a=A[cur][j];
+return `<div class="q"><p class="p">${j+1}. ${e(q[0])}</p>`+q[1].map((o,k)=>`<button class="o ${a>=0?(k==q[2]?"ok":(k==a?"no":"")):""}" ${a>=0?"disabled":""} onclick="pick(${j},${k})">${L[k]}) ${e(o)}</button>`).join("")+(a>=0?`<div class="e">${a==q[2]?"✔ Točno.":"✘ Netočno."} ${e(q[3])}</div>`:"")+"</div>"}).join("")}
+function reset(){A=T.map(t=>t[1].map(()=>-1));draw()}
+draw();
+</script></main></body></html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NBP – odaberi ispravan kod</title>
+<style>
+:root{--bg:#fff;--fg:#1f2328;--mut:#6b7280;--card:#f6f8fa;--bd:#d0d7de;--ac:#2563eb;--ok:#16a34a;--okb:#dcfce7;--no:#dc2626;--nob:#fee2e2}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mut:#9aa4b2;--card:#161b22;--bd:#30363d;--ac:#58a6ff;--ok:#4ade80;--okb:#12301d;--no:#f87171;--nob:#3a1717}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}h1{font-size:1.35rem;margin:.3em 0}.mut{color:var(--mut);font-size:.9rem}
+.q{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin:14px 0}
+.p{white-space:pre-wrap;font-weight:600;margin:0 0 10px}
+.o{display:flex;gap:8px;width:100%;text-align:left;margin:6px 0;padding:8px 10px;border:1px solid var(--bd);background:var(--bg);color:var(--fg);border-radius:8px;cursor:pointer}
+.o:hover:not(:disabled){border-color:var(--ac)}.o b{flex:none}
+.o pre{margin:0;white-space:pre-wrap;font:.82rem/1.4 ui-monospace,Consolas,monospace;overflow-x:auto}
+.o.ok{background:var(--okb);border-color:var(--ok)}.o.no{background:var(--nob);border-color:var(--no)}
+.e{margin-top:8px;font-size:.92rem;color:var(--mut)}
+.bar{position:sticky;top:0;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;z-index:2}
+.bar button{border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:5px 10px;border-radius:8px;cursor:pointer}
+</style></head><body><main>
+<h1>Napredne baze podataka – koji je kod ispravan?</h1>
+<div class="mut">Uz svako pitanje je 5 kodova, samo je jedan točan. Točan +1, netočan −0,25 (promijeni u kodu: NEG). DELIMITER je izostavljen radi preglednosti.</div>
+<div class="bar"><div id="sc"></div><button onclick="reset()">Resetiraj</button></div>
+<div id="qs"></div>
+<script>
+const NEG=0.25;
+const Q=[
+["Funkcija prima poštanski broj i vraća 1 ako u tom mjestu postoji barem jedan hotel s 5 zvjezdica, inače 0. Tablica hotel(ID, naziv, brojZvjezdica, pbrMjesto).",[
+`CREATE FUNCTION imaPetica(IN pbr INT) RETURNS INT DETERMINISTIC
+BEGIN
+  DECLARE n INT;
+  SELECT COUNT(*) INTO n FROM hotel WHERE pbrMjesto=pbr AND brojZvjezdica=5;
+  IF n>0 THEN RETURN 1; ELSE RETURN 0; END IF;
+END`,
+`CREATE FUNCTION imaPetica(pbr INT) DETERMINISTIC
+BEGIN
+  DECLARE n INT;
+  SELECT COUNT(*) INTO n FROM hotel WHERE pbrMjesto=pbr AND brojZvjezdica=5;
+  IF n>0 THEN RETURN 1; ELSE RETURN 0; END IF;
+END`,
+`CREATE FUNCTION imaPetica(pbr INT) RETURNS INT DETERMINISTIC
+BEGIN
+  DECLARE n INT;
+  SELECT COUNT(*) INTO n FROM hotel WHERE pbrMjesto=pbr AND brojZvjezdica=5;
+  IF n>0 THEN RETURN 1; ELSE RETURN 0; END IF;
+END`,
+`CREATE FUNCTION imaPetica(pbr INT) RETURNS INT DETERMINISTIC
+BEGIN
+  SELECT COUNT(*) INTO n FROM hotel WHERE pbrMjesto=pbr AND brojZvjezdica=5;
+  IF n>0 THEN RETURN 1; ELSE RETURN 0; END IF;
+END`,
+`CREATE FUNCTION imaPetica(pbr INT) RETURNS INT DETERMINISTIC
+BEGIN
+  DECLARE n INT;
+  SELECT COUNT(*) INTO n FROM hotel WHERE pbrMjesto=pbr AND brojZvjezdica=5;
+  IF n=1 THEN RETURN 1; ELSE RETURN 0; END IF;
+END`],2,"Funkcija nema IN (A), mora imati RETURNS (B), n se mora DECLARE-ati (D), a uvjet je n>0, ne n=1 (E)."],
+
+["Funkcija prima ID rezervacije i vraća cijenu boravka (danaOstanak × cijenaNocenja). Tablice: rezervacija(ID, danaOstanak, IDSoba), soba(ID, cijenaNocenja).",[
+`CREATE FUNCTION cijenaBoravka(rez INT) RETURNS DECIMAL(10,2) DETERMINISTIC
+BEGIN
+  DECLARE c DECIMAL(10,2);
+  SELECT danaOstanak*cijenaNocenja INTO c
+  FROM rezervacija JOIN soba ON IDSoba=soba.ID
+  WHERE rezervacija.ID=rez;
+  RETURN c;
+END`,
+`CREATE FUNCTION cijenaBoravka(rez INT, OUT c DECIMAL(10,2)) RETURNS DECIMAL(10,2)
+BEGIN
+  SELECT danaOstanak*cijenaNocenja INTO c
+  FROM rezervacija JOIN soba ON IDSoba=soba.ID
+  WHERE rezervacija.ID=rez;
+  RETURN c;
+END`,
+`CREATE FUNCTION cijenaBoravka(rez INT) RETURNS DECIMAL(10,2) DETERMINISTIC
+BEGIN
+  DECLARE c DECIMAL(10,2);
+  SELECT danaOstanak+cijenaNocenja INTO c
+  FROM rezervacija JOIN soba ON IDSoba=soba.ID
+  WHERE rezervacija.ID=rez;
+  RETURN c;
+END`,
+`CREATE FUNCTION cijenaBoravka(rez INT) RETURNS DECIMAL(10,2) DETERMINISTIC
+BEGIN
+  DECLARE c DECIMAL(10,2);
+  SELECT danaOstanak*cijenaNocenja INTO c
+  FROM rezervacija, soba
+  WHERE rezervacija.ID=rez;
+  RETURN c;
+END`,
+`CREATE FUNCTION cijenaBoravka(rez INT) RETURNS DECIMAL(10,2) DETERMINISTIC
+BEGIN
+  SELECT danaOstanak*cijenaNocenja
+  FROM rezervacija JOIN soba ON IDSoba=soba.ID
+  WHERE rezervacija.ID=rez;
+END`],0,"Funkcija nema OUT parametre (B), traži se umnožak (C), bez uvjeta spajanja upit vraća više redaka (D), a funkcija mora RETURN-ati vrijednost (E)."],
+
+["Procedura unos(i, d, v, n, g, s) unosi rezervaciju. Ako ID ne postoji: unos i poruka 'Uspješan unos'. Inače: novi ID = MAX(ID)+1, unos i poruka 'Unos sa izgeneriranim ID-om'. Koje je tijelo ispravno?",[
+`DECLARE br INT;
+SELECT COUNT(*) INTO br FROM rezervacija WHERE ID=i;
+IF br>0 THEN
+  INSERT INTO rezervacija VALUES (i,d,v,n,g,s); SELECT 'Uspješan unos';
+ELSE
+  SELECT MAX(ID)+1 INTO i FROM rezervacija;
+  INSERT INTO rezervacija VALUES (i,d,v,n,g,s); SELECT 'Unos sa izgeneriranim ID-om';
+END IF;`,
+`DECLARE br INT;
+SELECT COUNT(*) INTO br FROM rezervacija WHERE ID=i;
+IF br=0 THEN
+  INSERT INTO rezervacija VALUES (i,d,v,n,g,s); SELECT 'Uspješan unos';
+ELSE
+  SELECT MAX(ID) INTO i FROM rezervacija;
+  INSERT INTO rezervacija VALUES (i,d,v,n,g,s); SELECT 'Unos sa izgeneriranim ID-om';
+END IF;`,
+`DECLARE br INT;
+INSERT INTO rezervacija VALUES (i,d,v,n,g,s);
+SELECT COUNT(*) INTO br FROM rezervacija WHERE ID=i;
+IF br=1 THEN SELECT 'Uspješan unos';
+ELSE SELECT 'Unos sa izgeneriranim ID-om'; END IF;`,
+`DECLARE br INT;
+SELECT COUNT(*) INTO br FROM rezervacija WHERE ID=i;
+IF br=0 THEN
+  INSERT INTO rezervacija VALUES (i,d,v,n,g,s); SELECT 'Uspješan unos';
+ELSE
+  SELECT MAX(ID)+1 INTO i FROM rezervacija;
+  INSERT INTO rezervacija VALUES (i,d,v,n,g,s); SELECT 'Unos sa izgeneriranim ID-om';
+END IF;`,
+`DECLARE br INT;
+SELECT COUNT(*) INTO br FROM rezervacija WHERE ID=i;
+IF br=0 THEN
+  INSERT INTO rezervacija VALUES (i,d,v,n,g,s); SELECT 'Uspješan unos';
+ELSE
+  SELECT COUNT(*)+1 INTO i FROM rezervacija;
+  INSERT INTO rezervacija VALUES (i,d,v,n,g,s); SELECT 'Unos sa izgeneriranim ID-om';
+END IF;`],3,"Uvjet je br=0 (A obrnut), novi ID je MAX+1 (B), provjera mora biti prije INSERT-a (C), a COUNT+1 nije zadnji ID+1 (E)."],
+
+["Funkcija poskupi(h INT) RETURNS INT DETERMINISTIC treba kursorom i handlerom poskupiti sve sobe hotela h za 5% i vratiti broj poskupljenih soba. soba(ID, cijenaNocenja, IDHotel). Koje je tijelo ispravno?",[
+`DECLARE s, n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+DECLARE k CURSOR FOR SELECT ID FROM soba WHERE IDHotel=h;
+OPEN k;
+pet: LOOP
+  FETCH k INTO s; IF kraj THEN LEAVE pet; END IF;
+  UPDATE soba SET cijenaNocenja=cijenaNocenja*1.05 WHERE ID=s; SET n=n+1;
+END LOOP;
+CLOSE k; RETURN n;`,
+`DECLARE s, n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE;
+DECLARE k CURSOR FOR SELECT ID FROM soba WHERE IDHotel=h;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+OPEN k;
+pet: LOOP
+  FETCH k INTO s; IF kraj THEN LEAVE pet; END IF;
+  UPDATE soba SET cijenaNocenja=cijenaNocenja*1.05 WHERE ID=s; SET n=n+1;
+END LOOP;
+CLOSE k; RETURN n;`,
+`DECLARE s, n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE;
+DECLARE k CURSOR FOR SELECT ID FROM soba WHERE IDHotel=h;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+OPEN k;
+pet: LOOP
+  FETCH k INTO s;
+  UPDATE soba SET cijenaNocenja=cijenaNocenja*1.05 WHERE ID=s; SET n=n+1;
+  IF kraj THEN LEAVE pet; END IF;
+END LOOP;
+CLOSE k; RETURN n;`,
+`DECLARE s, n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE;
+DECLARE k CURSOR FOR SELECT ID FROM soba WHERE IDHotel=h;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+OPEN k;
+pet: LOOP
+  FETCH k INTO s; IF kraj THEN LEAVE pet; END IF;
+  UPDATE soba SET cijenaNocenja=cijenaNocenja*0.05 WHERE ID=s; SET n=n+1;
+END LOOP;
+CLOSE k; RETURN n;`,
+`DECLARE s, n INT DEFAULT 0;
+DECLARE k CURSOR FOR SELECT ID FROM soba WHERE IDHotel=h;
+OPEN k;
+pet: LOOP
+  FETCH k INTO s;
+  UPDATE soba SET cijenaNocenja=cijenaNocenja*1.05 WHERE ID=s; SET n=n+1;
+END LOOP;
+CLOSE k; RETURN n;`],1,"Handler ide nakon kursora (A ga deklarira prije, pogreška 1338), zastavica se provjerava odmah nakon FETCH-a (C), poskupljenje je ×1.05 (D), a bez handlera FETCH javlja grešku 1329 (E)."],
+
+["Treba promijeniti satiKvar na 1 za kvar 'Uštimavanje pokretnog krova' unutar transakcije i opozvati promjenu. Koji je kod ispravan?",[
+`UPDATE kvar SET satiKvar=1 WHERE nazivKvar='Uštimavanje pokretnog krova';
+ROLLBACK;`,
+`SET AUTOCOMMIT=0;
+BEGIN WORK;
+UPDATE kvar SET satiKvar=1 WHERE nazivKvar='Uštimavanje pokretnog krova';
+COMMIT WORK;
+SET AUTOCOMMIT=1;`,
+`SET AUTOCOMMIT=0;
+BEGIN WORK;
+UPDATE kvar SET satiKvar=1 WHERE nazivKvar='Uštimavanje pokretnog krova';
+ALTER TABLE kvar ADD napomena VARCHAR(20);
+ROLLBACK WORK;
+SET AUTOCOMMIT=1;`,
+`SET AUTOCOMMIT=0;
+BEGIN WORK;
+UPDATE kvar SET satiKvar=1 WHERE nazivKvar='Uštimavanje pokretnog krova';
+SAVEPOINT s1;
+ROLLBACK TO SAVEPOINT s1;
+COMMIT;
+SET AUTOCOMMIT=1;`,
+`SET AUTOCOMMIT=0;
+BEGIN WORK;
+UPDATE kvar SET satiKvar=1 WHERE nazivKvar='Uštimavanje pokretnog krova';
+ROLLBACK WORK;
+SET AUTOCOMMIT=1;`],4,"A: autocommit je uključen pa je UPDATE već potvrđen. B: COMMIT. C: ALTER TABLE izaziva implicitni COMMIT. D: savepoint je postavljen nakon UPDATE-a."],
+
+["Treba: satiKvar kvara 'Uštimavanje pokretnog krova' postaviti na 3 i potvrditi, zatim izvršiti DELETE FROM kvar WHERE satiKvar>3 i to brisanje opozvati. Koji je kod ispravan?",[
+`SET AUTOCOMMIT=0; BEGIN WORK;
+UPDATE kvar SET satiKvar=3 WHERE nazivKvar='Uštimavanje pokretnog krova';
+DELETE FROM kvar WHERE satiKvar>3;
+ROLLBACK; SET AUTOCOMMIT=1;`,
+`SET AUTOCOMMIT=0; BEGIN WORK;
+SAVEPOINT pr;
+UPDATE kvar SET satiKvar=3 WHERE nazivKvar='Uštimavanje pokretnog krova';
+DELETE FROM kvar WHERE satiKvar>3;
+ROLLBACK TO SAVEPOINT pr; COMMIT; SET AUTOCOMMIT=1;`,
+`SET AUTOCOMMIT=0; BEGIN WORK;
+UPDATE kvar SET satiKvar=3 WHERE nazivKvar='Uštimavanje pokretnog krova';
+SAVEPOINT pr;
+DELETE FROM kvar WHERE satiKvar>3;
+ROLLBACK TO SAVEPOINT pr; COMMIT; SET AUTOCOMMIT=1;`,
+`SET AUTOCOMMIT=0; BEGIN WORK;
+UPDATE kvar SET satiKvar=3 WHERE nazivKvar='Uštimavanje pokretnog krova';
+SAVEPOINT pr;
+ROLLBACK TO SAVEPOINT pr;
+DELETE FROM kvar WHERE satiKvar>3; COMMIT; SET AUTOCOMMIT=1;`,
+`SET AUTOCOMMIT=0; BEGIN WORK;
+UPDATE kvar SET satiKvar=3 WHERE nazivKvar='Uštimavanje pokretnog krova';
+SAVEPOINT pr;
+DELETE FROM kvar WHERE satiKvar>3;
+RELEASE SAVEPOINT pr; COMMIT; SET AUTOCOMMIT=1;`],2,"Savepoint mora doći nakon UPDATE-a i prije DELETE-a, a ROLLBACK TO SAVEPOINT nakon DELETE-a. A poništava sve, B i D poništavaju krivi dio, E briše savepoint pa se DELETE potvrdi."],
+
+["Procedura treba preko parametra vratiti naziv kvara za zadanu šifru. kvar(sifKvar, nazivKvar). Koje rješenje s pozivom je ispravno?",[
+`CREATE PROCEDURE vrati_naziv(IN sif INT, OUT naziv VARCHAR(50))
+BEGIN SELECT nazivKvar INTO naziv FROM kvar WHERE sifKvar=sif; END;
+CALL vrati_naziv(14, a);
+SELECT a;`,
+`CREATE PROCEDURE vrati_naziv(IN sif INT, OUT naziv VARCHAR(50))
+BEGIN SELECT nazivKvar INTO @naziv FROM kvar WHERE sifKvar=sif; END;
+CALL vrati_naziv(14, @a);
+SELECT @a;`,
+`CREATE PROCEDURE vrati_naziv(IN sif INT, OUT naziv VARCHAR(50))
+BEGIN SELECT nazivKvar INTO naziv FROM kvar WHERE sifKvar=sif; END;
+SELECT vrati_naziv(14, @a);
+SELECT @a;`,
+`CREATE PROCEDURE vrati_naziv(IN sif INT, OUT naziv VARCHAR(50))
+BEGIN SELECT nazivKvar INTO naziv FROM kvar WHERE sifKvar=sif; END;
+CALL vrati_naziv(14, @a);
+SELECT @a;`,
+`CREATE FUNCTION vrati_naziv(IN sif INT, OUT naziv VARCHAR(50)) RETURNS INT
+BEGIN SELECT nazivKvar INTO naziv FROM kvar WHERE sifKvar=sif; RETURN 1; END;
+SELECT vrati_naziv(14, @a);`],3,"Izlaz se prima u korisničku varijablu @a, procedura se poziva s CALL, a funkcije nemaju OUT parametre."],
+
+["Procedura dohvatiSatiKvar(k) prima šifru kvara i preko ISTE varijable vraća satiKvar. Koje rješenje je ispravno?",[
+`CREATE PROCEDURE dohvatiSatiKvar(IN k INT)
+BEGIN SELECT satiKvar INTO k FROM kvar WHERE sifKvar=k; END;
+SET @kv=7; CALL dohvatiSatiKvar(@kv); SELECT @kv;`,
+`CREATE PROCEDURE dohvatiSatiKvar(INOUT k INT)
+BEGIN SELECT satiKvar INTO k FROM kvar WHERE sifKvar=k; END;
+SET @kv=7; CALL dohvatiSatiKvar(@kv); SELECT @kv;`,
+`CREATE PROCEDURE dohvatiSatiKvar(OUT k INT)
+BEGIN SELECT satiKvar INTO k FROM kvar WHERE sifKvar=k; END;
+SET @kv=7; CALL dohvatiSatiKvar(@kv); SELECT @kv;`,
+`CREATE PROCEDURE dohvatiSatiKvar(INOUT k INT)
+BEGIN SELECT satiKvar INTO k FROM kvar WHERE sifKvar=k; END;
+CALL dohvatiSatiKvar(7);`,
+`CREATE FUNCTION dohvatiSatiKvar(INOUT k INT) RETURNS INT
+BEGIN SELECT satiKvar INTO k FROM kvar WHERE sifKvar=k; RETURN k; END;
+SET @kv=7; SELECT dohvatiSatiKvar(@kv);`],1,"Treba INOUT: A mijenja samo lokalnu kopiju, C ima na ulazu NULL, D prosljeđuje konstantu, E je funkcija s INOUT."],
+
+["Procedura treba kursorom sve radnike promaknuti u odjel +1 i ispisati broj promaknutih. radnik(sifRadnik, sifOdjel). Koje je tijelo ispravno?",[
+`DECLARE n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE; DECLARE sif, odj INT;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+DECLARE k CURSOR FOR SELECT sifRadnik, sifOdjel FROM radnik;
+OPEN k;
+vrti: LOOP FETCH k INTO sif, odj; IF kraj THEN LEAVE vrti; END IF;
+  UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif; SET n=n+1;
+END LOOP;
+CLOSE k; SELECT n;`,
+`DECLARE n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE; DECLARE sif INT;
+DECLARE k CURSOR FOR SELECT sifRadnik, sifOdjel FROM radnik;
+DECLARE odj INT;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+OPEN k;
+vrti: LOOP FETCH k INTO sif, odj; IF kraj THEN LEAVE vrti; END IF;
+  UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif; SET n=n+1;
+END LOOP;
+CLOSE k; SELECT n;`,
+`DECLARE n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE; DECLARE sif, odj INT;
+DECLARE k CURSOR FOR SELECT sifRadnik, sifOdjel FROM radnik;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+vrti: LOOP FETCH k INTO sif, odj; IF kraj THEN LEAVE vrti; END IF;
+  UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif; SET n=n+1;
+END LOOP;
+CLOSE k; SELECT n;`,
+`DECLARE n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE; DECLARE sif, odj INT;
+DECLARE k CURSOR FOR SELECT sifRadnik, sifOdjel FROM radnik;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+OPEN k;
+vrti: LOOP FETCH k INTO sif, odj;
+  UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif; SET n=n+1;
+END LOOP;
+CLOSE k; SELECT n;`,
+`DECLARE n INT DEFAULT 0; DECLARE kraj BOOL DEFAULT FALSE; DECLARE sif, odj INT;
+DECLARE k CURSOR FOR SELECT sifRadnik, sifOdjel FROM radnik;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET kraj=TRUE;
+OPEN k;
+vrti: LOOP FETCH k INTO sif, odj; IF kraj THEN LEAVE vrti; END IF;
+  UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif; SET n=n+1;
+END LOOP;
+CLOSE k; SELECT n;`],4,"A: handler prije kursora (1338). B: varijabla nakon kursora (1337). C: nema OPEN (1326). D: nema provjere kraj pa je petlja beskonačna."],
+
+["U petlji kursora radnik se promiče (odj+1). Promaknuće treba poništiti ako novi odjel > maxOdjel, inače potvrditi i uvećati brojač n. Koji dio petlje je ispravan?",[
+`SET autocommit=0; START TRANSACTION;
+UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif;
+IF odj+1>maxOdjel THEN COMMIT; SET n=n+1; ELSE ROLLBACK; END IF;`,
+`UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif;
+IF odj+1>maxOdjel THEN ROLLBACK; ELSE COMMIT; SET n=n+1; END IF;`,
+`SET autocommit=0; START TRANSACTION;
+UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif;
+IF odj+1>maxOdjel THEN ROLLBACK; ELSE COMMIT; SET n=n+1; END IF;`,
+`SET autocommit=0; START TRANSACTION;
+UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif;
+IF odj+1>maxOdjel THEN ROLLBACK; ELSE COMMIT; END IF;
+SET n=n+1;`,
+`SET autocommit=0; START TRANSACTION;
+UPDATE radnik SET sifOdjel=odj+1 WHERE sifRadnik=sif;
+IF odj+1>maxOdjel THEN ROLLBACK TO SAVEPOINT pr; ELSE COMMIT; SET n=n+1; END IF;`],2,"A je obrnut, B nema isključen autocommit pa ROLLBACK ne djeluje, D broji i poništene, E koristi nepostojeći savepoint."],
+
+["Funkcija prima šifru klijenta i vraća identifikator 'iprezime123': prvo slovo imena (malo), prezime (malo) i zadnje tri znamenke godine rođenja iz JMBG-a (znamenke 5–7). klijent(sifKlijent, imeKlijent, prezimeKlijent, jmbgKlijent). Koji SELECT unutar funkcije je ispravan?",[
+`SELECT CONCAT(LCASE(LEFT(imeKlijent,1)), LCASE(prezimeKlijent), SUBSTRING(jmbgKlijent,5,3))
+INTO id FROM klijent WHERE sifKlijent=sif;`,
+`SELECT CONCAT(LCASE(LEFT(imeKlijent,1)), LCASE(prezimeKlijent), SUBSTRING(jmbgKlijent,1,3))
+INTO id FROM klijent WHERE sifKlijent=sif;`,
+`SELECT CONCAT(LCASE(RIGHT(imeKlijent,1)), LCASE(prezimeKlijent), SUBSTRING(jmbgKlijent,5,3))
+INTO id FROM klijent WHERE sifKlijent=sif;`,
+`SELECT CONCAT(LCASE(LEFT(imeKlijent,1)), LCASE(prezimeKlijent), SUBSTRING(jmbgKlijent,5))
+INTO id FROM klijent WHERE sifKlijent=sif;`,
+`-- parametar funkcije zove se sifKlijent
+SELECT CONCAT(LCASE(LEFT(imeKlijent,1)), LCASE(prezimeKlijent), SUBSTRING(jmbgKlijent,5,3))
+INTO id FROM klijent WHERE sifKlijent=sifKlijent;`],0,"B uzima dan i mjesec, C zadnje slovo imena, D sve znamenke od 5. nadalje, a E uspoređuje stupac sam sa sobom (uvijek istina, više redaka)."],
+
+["Funkcija vraća broj naloga zaprimljenih u posljednjih mjesec dana, a -1 ako ih nema. nalog(datPrimitkaNalog, ...). Koje je tijelo ispravno?",[
+`DECLARE v INT;
+SELECT COUNT(*) INTO v FROM nalog WHERE datPrimitkaNalog >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH);
+IF v=NULL THEN SET v=-1; END IF;
+RETURN v;`,
+`DECLARE v INT;
+SELECT COUNT(*) INTO v FROM nalog WHERE datPrimitkaNalog >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH);
+IF v=0 THEN SET v=-1;
+RETURN v;`,
+`DECLARE v INT;
+SELECT COUNT(*) INTO v FROM nalog WHERE datPrimitkaNalog >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH);
+IF v>0 THEN SET v=-1; END IF;
+RETURN v;`,
+`DECLARE v INT;
+SELECT COUNT(*) INTO v FROM nalog WHERE datPrimitkaNalog >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH);
+IF v=0 THEN SET v=-1; END IF;
+RETURN v;`,
+`DECLARE v INT;
+SELECT COUNT(*) INTO v FROM nalog WHERE datPrimitkaNalog >= DATE_ADD(CURDATE(), INTERVAL 1 MONTH);
+IF v=0 THEN SET v=-1; END IF;
+RETURN v;`],3,"A: usporedba s NULL ostaje NULL pa uvjet nikad nije istinit. B: nedostaje END IF. C: obrnut uvjet. E: DATE_ADD gleda budućnost."],
+
+["Funkcija prima šifru radnika i vraća broj RAZLIČITIH klijenata na čijim je nalozima radnik radio. nalog(sifKlijent, sifRadnik, ...). Koje je tijelo ispravno?",[
+`DECLARE br INT;
+SELECT COUNT(sifKlijent) INTO br FROM nalog WHERE sifRadnik=r;
+RETURN br;`,
+`DECLARE br INT;
+SELECT COUNT(DISTINCT sifKlijent) INTO br FROM nalog WHERE sifRadnik=r;
+RETURN br;`,
+`DECLARE br INT;
+SELECT COUNT(DISTINCT sifRadnik) INTO br FROM nalog WHERE sifRadnik=r;
+RETURN br;`,
+`DECLARE br INT;
+SELECT COUNT(*) INTO br FROM nalog WHERE sifRadnik=r GROUP BY sifKlijent;
+RETURN br;`,
+`DECLARE br INT;
+SELECT COUNT(DISTINCT sifKlijent) FROM nalog WHERE sifRadnik=r;
+RETURN br;`],1,"Treba COUNT(DISTINCT sifKlijent). A broji i duplikate, C broji radnike, D vraća više redaka, E ne sprema rezultat u br (nema INTO)."]
+];
+let A=Q.map(()=>-1);const L="ABCDE";
+const e=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function pick(j,k){if(A[j]<0){A[j]=k;draw()}}
+function draw(){let p=0,n=0,a=0;Q.forEach((q,j)=>{if(A[j]>=0){a++;A[j]==q[2]?p++:n++}});
+document.getElementById("sc").innerHTML=`Odgovoreno ${a}/${Q.length} · točno ${p} · netočno ${n} · <b>bodovi: ${(p-n*NEG).toFixed(2)}</b>`;
+document.getElementById("qs").innerHTML=Q.map((q,j)=>{const a=A[j];
+return `<div class="q"><p class="p">${j+1}. ${e(q[0])}</p>`+q[1].map((o,k)=>`<button class="o ${a>=0?(k==q[2]?"ok":(k==a?"no":"")):""}" ${a>=0?"disabled":""} onclick="pick(${j},${k})"><b>${L[k]})</b><pre>${e(o)}</pre></button>`).join("")+(a>=0?`<div class="e">${a==q[2]?"✔ Točno.":"✘ Netočno, točan je "+L[q[2]]+"."} ${e(q[3])}</div>`:"")+"</div>"}).join("")}
+function reset(){A=Q.map(()=>-1);draw();scrollTo(0,0)}
+draw();
+</script></main></body></html>
